@@ -6,9 +6,9 @@
 //
 
 import Foundation
+import Combine
 import FirebaseAuth
 import FirebaseFirestore
-import FirebaseFirestoreSwift
 
 @MainActor
 class AuthService: ObservableObject {
@@ -138,20 +138,20 @@ class AuthService: ObservableObject {
             let result = try await Auth.auth().createUser(withEmail: email, password: password)
             let userId = result.user.uid
             
-            // Create user object
-            let user = User(
-                id: userId,
-                name: fullName,
-                email: email,
-                userType: .student,
-                phone: phone,
-                createdAt: Date(),
-                uniEmail: uniEmail,
-                iban: iban
-            )
+            // Create user dictionary for Firestore
+            let userData: [String: Any] = [
+                "id": userId,
+                "name": fullName,
+                "email": email,
+                "userType": "student",
+                "phone": phone,
+                "createdAt": Timestamp(date: Date()),
+                "uniEmail": uniEmail,
+                "iban": iban
+            ]
             
             // Save user to Firestore
-            try db.collection("users").document(userId).setData(from: user)
+            try await db.collection("users").document(userId).setData(userData)
             
             // Also save student-specific profile
             let studentProfile: [String: Any] = [
@@ -166,7 +166,18 @@ class AuthService: ObservableObject {
             
             try await db.collection("students").document(userId).setData(studentProfile)
             
-            // Set current user (fetchUserData will be called by the auth state listener)
+            // Create User object for current user
+            let user = User(
+                id: userId,
+                name: fullName,
+                email: email,
+                userType: .student,
+                phone: phone,
+                createdAt: Date(),
+                uniEmail: uniEmail,
+                iban: iban
+            )
+            
             currentUser = user
             isAuthenticated = true
             
@@ -234,20 +245,20 @@ class AuthService: ObservableObject {
             let result = try await Auth.auth().createUser(withEmail: email, password: password)
             let userId = result.user.uid
             
-            // Create user object
-            let user = User(
-                id: userId,
-                name: companyName,
-                email: email,
-                userType: .employer,
-                phone: phone,
-                createdAt: Date(),
-                companyName: companyName,
-                companyAddress: companyAddress
-            )
+            // Create user dictionary for Firestore
+            let userData: [String: Any] = [
+                "id": userId,
+                "name": companyName,
+                "email": email,
+                "userType": "employer",
+                "phone": phone,
+                "createdAt": Timestamp(date: Date()),
+                "companyName": companyName,
+                "companyAddress": companyAddress
+            ]
             
             // Save user to Firestore
-            try db.collection("users").document(userId).setData(from: user)
+            try await db.collection("users").document(userId).setData(userData)
             
             // Also save employer-specific profile
             let employerProfile: [String: Any] = [
@@ -261,7 +272,18 @@ class AuthService: ObservableObject {
             
             try await db.collection("employers").document(userId).setData(employerProfile)
             
-            // Set current user
+            // Create User object for current user
+            let user = User(
+                id: userId,
+                name: companyName,
+                email: email,
+                userType: .employer,
+                phone: phone,
+                createdAt: Date(),
+                companyName: companyName,
+                companyAddress: companyAddress
+            )
+            
             currentUser = user
             isAuthenticated = true
             
@@ -296,13 +318,46 @@ class AuthService: ObservableObject {
         do {
             let document = try await db.collection("users").document(uid).getDocument()
             
-            if document.exists {
-                let user = try document.data(as: User.self)
+            if document.exists, let data = document.data() {
+                // Manually decode from dictionary
+                let id = data["id"] as? String ?? uid
+                let name = data["name"] as? String ?? ""
+                let email = data["email"] as? String ?? ""
+                let userTypeString = data["userType"] as? String ?? "student"
+                let userType = UserType(rawValue: userTypeString) ?? .student
+                let phone = data["phone"] as? String ?? ""
+                
+                // Handle Date from Timestamp
+                var createdAt = Date()
+                if let timestamp = data["createdAt"] as? Timestamp {
+                    createdAt = timestamp.dateValue()
+                }
+                
+                // Student-specific fields
+                let uniEmail = data["uniEmail"] as? String
+                let iban = data["iban"] as? String
+                
+                // Employer-specific fields
+                let companyName = data["companyName"] as? String
+                let companyAddress = data["companyAddress"] as? String
+                
+                let user = User(
+                    id: id,
+                    name: name,
+                    email: email,
+                    userType: userType,
+                    phone: phone,
+                    createdAt: createdAt,
+                    uniEmail: uniEmail,
+                    iban: iban,
+                    companyName: companyName,
+                    companyAddress: companyAddress
+                )
+                
                 currentUser = user
                 isAuthenticated = true
             } else {
-                // User document doesn't exist - might be a new user
-                // This shouldn't happen, but handle gracefully
+                // User document doesn't exist
                 currentUser = nil
                 isAuthenticated = false
             }
