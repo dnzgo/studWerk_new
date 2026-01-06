@@ -14,23 +14,12 @@ struct JobCard: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(job.company)
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.blue)
-                    
                     Text(job.position)
                         .font(.headline)
                         .fontWeight(.bold)
                 }
                 
                 Spacer()
-                
-                if job.isRemote {
-                    Image(systemName: "house.fill")
-                        .foregroundColor(.green)
-                        .font(.caption)
-                }
             }
             
             HStack {
@@ -67,15 +56,6 @@ struct JobCard: View {
                 Text(job.distance)
                     .font(.caption)
                     .foregroundColor(.secondary)
-                
-                Text(job.jobType.rawValue)
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .foregroundColor(job.jobType.color)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(job.jobType.color.opacity(0.2))
-                    .cornerRadius(4)
             }
             
             HStack {

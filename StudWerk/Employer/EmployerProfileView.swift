@@ -2,6 +2,225 @@
 //  EmployerProfileView.swift
 //  StudWerk
 //
-//  Created by Emir Yalçınkaya on 5.01.2026.
+//  Created by Deniz Gözcü on 5.1.2026.
 //
 
+import SwiftUI
+
+struct EmployerProfileView: View {
+    @State private var employerName = "Max Mustermann"
+    @State private var isCompany = false
+    @State private var companyName = "Tech Solutions GmbH"
+    @State private var industry = "Technology"
+    @State private var companySize = "50-100 employees"
+    @State private var location = "Berlin, Germany"
+    @State private var showingSettings = false
+    
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(spacing: 24) {
+                    // Profile Header
+                    VStack(spacing: 16) {
+                        // Profile Picture
+                        Circle()
+                            .fill(Color.blue.opacity(0.2))
+                            .frame(width: 100, height: 100)
+                            .overlay(
+                                Image(systemName: isCompany ? "building.2.fill" : "person.fill")
+                                    .font(.system(size: 40))
+                                    .foregroundColor(.blue)
+                            )
+                        
+                        VStack(spacing: 4) {
+                            Text(isCompany ? companyName : employerName)
+                                .font(.title2)
+                                .fontWeight(.bold)
+                            
+                            Text(isCompany ? industry : "Individual Employer")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                            
+                            Text(location)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .padding(.top, 20)
+                    
+                    // Employer Type Toggle
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("Employer Type")
+                            .font(.headline)
+                            .fontWeight(.semibold)
+                        
+                        HStack {
+                            Text("Individual Employer")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                            
+                            Spacer()
+                            
+                            Toggle("", isOn: $isCompany)
+                                .toggleStyle(SwitchToggleStyle(tint: .blue))
+                        }
+                        .padding()
+                        .background(Color(.systemGray6))
+                        .cornerRadius(12)
+                    }
+                    
+                    // Employer Information
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text(isCompany ? "Company Information" : "Personal Information")
+                            .font(.headline)
+                            .fontWeight(.semibold)
+                        
+                        VStack(spacing: 12) {
+                            HStack {
+                                Text(isCompany ? "Company Name" : "Name")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                Spacer()
+                                Text(isCompany ? companyName : employerName)
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                            }
+                            
+                            if isCompany {
+                                HStack {
+                                    Text("Industry")
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                    Spacer()
+                                    Text(industry)
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+                                }
+                                
+                                HStack {
+                                    Text("Company Size")
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                    Spacer()
+                                    Text(companySize)
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+                                }
+                            }
+                            
+                            HStack {
+                                Text("Location")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                Spacer()
+                                Text(location)
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                            }
+                        }
+                        .padding()
+                        .background(Color(.systemGray6))
+                        .cornerRadius(12)
+                    }
+                    
+                    // Statistics Section
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("Statistics")
+                            .font(.headline)
+                            .fontWeight(.semibold)
+                        
+                        HStack(spacing: 20) {
+                            StatCard(
+                                title: "Active Jobs",
+                                value: "12",
+                                color: .blue, 
+                                icon: "briefcase.fill"
+                            )
+                            
+                            StatCard(
+                                title: "Hired Students",
+                                value: "45",
+                                color: .green,
+                                icon: "person.2.fill"
+                            )
+                            
+                            StatCard(
+                                title: "Total Spent",
+                                value: "€2.4K",
+                                color: .orange,
+                                icon: "eurosign.circle.fill"
+                            )
+                        }
+                    }
+                    
+                    // Settings Button
+                    Button(action: {
+                        showingSettings = true
+                    }) {
+                        HStack {
+                            Image(systemName: "gearshape.fill")
+                                .foregroundColor(.blue)
+                            
+                            Text("Settings")
+                                .font(.headline)
+                                .foregroundColor(.blue)
+                            
+                            Spacer()
+                            
+                            Image(systemName: "chevron.right")
+                                .foregroundColor(.blue)
+                        }
+                        .padding()
+                        .background(Color.blue.opacity(0.1))
+                        .cornerRadius(12)
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 20)
+            }
+            .navigationTitle("Profile")
+            .navigationBarTitleDisplayMode(.large)
+        }
+        .sheet(isPresented: $showingSettings) {
+            EmployerSettingsView()
+        }
+    }
+}
+
+
+struct EmployerSettingsView: View {
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        NavigationView {
+            List {
+                Section("Account") {
+                    SettingsRow(icon: "building.2.circle", title: "Company Information", color: .blue)
+                    SettingsRow(icon: "lock.circle", title: "Change Password", color: .green)
+                    SettingsRow(icon: "envelope.circle", title: "Email Settings", color: .orange)
+                }
+                
+                Section("Notifications") {
+                    SettingsRow(icon: "bell.circle", title: "Push Notifications", color: .red)
+                    SettingsRow(icon: "mail.circle", title: "Email Notifications", color: .blue)
+                }
+                
+                Section("Support") {
+                    SettingsRow(icon: "questionmark.circle", title: "Help & Support", color: .blue)
+                    SettingsRow(icon: "info.circle", title: "About", color: .gray)
+                }
+            }
+            .navigationTitle("Settings")
+            .navigationBarTitleDisplayMode(.inline)
+            .navigationBarItems(
+                trailing: Button("Done") {
+                    dismiss()
+                }
+            )
+        }
+    }
+}
+
+#Preview {
+    EmployerProfileView()
+}

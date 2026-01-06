@@ -1,6 +1,6 @@
 //
 //  ApplicationSummaryCard.swift
-//  
+//
 //
 //  Created by Deniz Gözcü on 05.01.26.
 //
@@ -46,3 +46,10 @@ struct ApplicationSummaryCard: View {
         .frame(width: 200)
     }
 }
+struct ApplicationSummary : Identifiable {
+    var id: UUID = UUID()
+    var studentName: String
+    var position: String
+    var timeAgo: String
+}
+

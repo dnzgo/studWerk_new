@@ -6,9 +6,8 @@
 //
 
 import SwiftUI
-import MapKit
 
-struct JobSearchView: View {
+struct StudentSearchView: View {
     @State private var searchText = ""
     @State private var selectedCategory = "All"
     @State private var minPay = 10.0
@@ -137,11 +136,6 @@ struct JobSearchView: View {
             return jobPay >= minPay && jobPay <= maxPay
         }
         
-        // Filter by remote
-        if isRemote {
-            jobs = jobs.filter { $0.isRemote }
-        }
-        
         return jobs
     }
     
@@ -172,16 +166,6 @@ struct SearchJobCard: View {
                 Spacer()
                 
                 VStack(alignment: .trailing, spacing: 4) {
-                    if job.isRemote {
-                        HStack(spacing: 4) {
-                            Image(systemName: "house.fill")
-                                .foregroundColor(.green)
-                                .font(.caption)
-                            Text("Remote")
-                                .font(.caption)
-                                .foregroundColor(.green)
-                        }
-                    }
                     
                     Text(job.category)
                         .font(.caption)
@@ -414,5 +398,5 @@ struct FilterButton: View {
 }
 
 #Preview {
-    JobSearchView()
+    StudentSearchView()
 }

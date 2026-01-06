@@ -10,7 +10,7 @@ struct StatCard: View {
     let title: String
     let value: String
     let color: Color
-    let icon: Image
+    let icon: String
     
     var body: some View {
         VStack (alignment :  .leading, spacing : 12) {
@@ -28,7 +28,7 @@ struct StatCard: View {
                 
                 Text(title)
                     .font(.caption)
-                    .fontWeight(.secondary)
+                    .fontWeight(.semibold)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

@@ -172,26 +172,6 @@ struct StudentProfileView: View {
                                     .fontWeight(.medium)
                                     .multilineTextAlignment(.trailing)
                             }
-                            
-                            HStack {
-                                Text("Study Program")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                                Spacer()
-                                Text(studyProgram)
-                                    .font(.subheadline)
-                                    .fontWeight(.medium)
-                            }
-                            
-                            HStack {
-                                Text("Semester")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                                Spacer()
-                                Text("\(semester)")
-                                    .font(.subheadline)
-                                    .fontWeight(.medium)
-                            }
                         }
                         .padding()
                         .background(Color(.systemGray6))

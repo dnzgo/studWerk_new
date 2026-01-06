@@ -20,11 +20,9 @@ struct EmployerHomeView: View {
                                 Text("Dashboard")
                                     .font(.largeTitle)
                                     .fontWeight(.bold)
-                                
-                                Text("Dashboard")
-                                    .font(.subheadline)
-                                    .fontWeight(.secondary)
                             }
+                            
+                            Spacer()
                             
                         }
                         .padding(.horizontal, 20)
@@ -34,12 +32,30 @@ struct EmployerHomeView: View {
                     // statistic cards
                     VStack(spacing : 16) {
                         HStack(spacing : 16) {
-                            StatCard(title: "Active Jobs", value: "12", icon: "briefcase.fill", color: .blue)
-                            StatCard(title: "Applications", value: "45", icon: "doc.text.fill", color: .green)
+                            StatCard(
+                                title: "Active Jobs",
+                                value: "12",
+                                color: .blue,
+                                icon: "briefcase.fill")
+                            
+                            StatCard(
+                                title: "Applications",
+                                value: "45",
+                                color: .green,
+                                icon: "doc.text.fill")
                         }
                         HStack(spacing : 16) {
-                            StatCard(title: "Hired Students", value: "23", icon: "person.2.fill", color: .orange)
-                            StatCard(title: "Total Spend", value: "€2.4K", icon: "eurosign.circle.fill", color: .purple)
+                            StatCard(
+                                title: "Hired Students",
+                                value: "23",
+                                color: .orange,
+                                icon: "person.2.fill")
+                            
+                            StatCard(
+                                title: "Total Spend",
+                                value: "€2.4K",
+                                color: .purple,
+                                icon: "eurosign.circle.fill")
                         }
                     }
                     .padding(.horizontal, 20)
@@ -61,22 +77,27 @@ struct EmployerHomeView: View {
                         }
                         .padding(.horizontal, 20)
                         
-                        ScrollView(.horizontal, showIndicators : false) {
-                            HStack(spacing : 16) {
-                                ForEach(recentApplications, id : \.id) {
-                                    application in
-                                    ApplicationSummaryCard(application: application))
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 16) {
+                                ForEach(recentApplications, id: \.id) { application in ApplicationSummaryCard(application: application)
                                 }
                             }
                             .padding(.horizontal, 20)
                         }
-                        
                     }
                 }
             }
         }
     }
 }
+
+
+let recentApplications = [
+    ApplicationSummary(studentName: "Max Mustermann", position: "Software Developer Intern", timeAgo: "2h ago"),
+    ApplicationSummary(studentName: "Anna Schmidt", position: "Marketing Assistant", timeAgo: "4h ago"),
+    ApplicationSummary(studentName: "Tom Weber", position: "Sales Assistant", timeAgo: "6h ago")
+]
+
 
 #Preview {
     EmployerHomeView()
