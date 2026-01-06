@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct LoginView: View {
+    @EnvironmentObject var authService: AuthService
     @Binding var isAuthenticated: Bool
     @Binding var path: [Route]
 
@@ -63,15 +64,23 @@ struct LoginView: View {
 
                 // Sign in
                 Button(action: handleLogin) {
-                    Text("Sign In")
-                        .font(.headline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 50)
-                        .background(Color.blue)
-                        .cornerRadius(12)
+                    HStack {
+                        if authService.isLoading {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        } else {
+                            Text("Sign In")
+                                .font(.headline)
+                                .fontWeight(.semibold)
+                        }
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 50)
+                    .background(authService.isLoading ? Color.gray : Color.blue)
+                    .cornerRadius(12)
                 }
+                .disabled(authService.isLoading)
                 .padding(.top, 6)
 
                 // Register
@@ -94,6 +103,17 @@ struct LoginView: View {
             Button("OK") { }
         } message: {
             Text(alertMessage)
+        }
+        .onChange(of: authService.isAuthenticated) { oldValue, newValue in
+            if newValue, let user = authService.currentUser {
+                path = [.home(user.userType)]
+            }
+        }
+        .onChange(of: authService.errorMessage) { oldValue, newValue in
+            if let error = newValue {
+                alertMessage = error
+                showingAlert = true
+            }
         }
     }
 
@@ -135,14 +155,24 @@ struct LoginView: View {
             return
         }
 
-        // Demo success
-        isAuthenticated = true
-        path = [.home(.student)]
+        Task {
+            do {
+                try await authService.login(email: email, password: password)
+                // Navigation is handled by onChange modifier
+            } catch {
+                alertMessage = authService.errorMessage ?? "Login failed. Please try again."
+                showingAlert = true
+            }
+        }
     }
 }
 
 #Preview("LoginView") {
     NavigationStack {
-        LoginView(isAuthenticated: .constant(false), path: .constant([]))
+        LoginView(
+            isAuthenticated: .constant(false),
+            path: .constant([])
+        )
+        .environmentObject(AuthService())
     }
 }

@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct StudentRegisterView: View {
+    @EnvironmentObject var authService: AuthService
     @Binding var isAuthenticated: Bool
     @Binding var path: [Route]
 
@@ -57,14 +58,22 @@ struct StudentRegisterView: View {
                 )
 
                 Button(action: registerStudent) {
-                    Text("Create Account")
-                        .font(.headline).fontWeight(.semibold)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 50)
-                        .background(Color.blue)
-                        .cornerRadius(12)
+                    HStack {
+                        if authService.isLoading {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        } else {
+                            Text("Create Account")
+                                .font(.headline).fontWeight(.semibold)
+                        }
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 50)
+                    .background(authService.isLoading ? Color.gray : Color.blue)
+                    .cornerRadius(12)
                 }
+                .disabled(authService.isLoading)
 
                 Spacer(minLength: 20)
             }
@@ -77,6 +86,17 @@ struct StudentRegisterView: View {
             Button("OK") { }
         } message: {
             Text(alertMessage)
+        }
+        .onChange(of: authService.isAuthenticated) { oldValue, newValue in
+            if newValue, let user = authService.currentUser {
+                path = [.home(user.userType)]
+            }
+        }
+        .onChange(of: authService.errorMessage) { oldValue, newValue in
+            if let error = newValue {
+                alertMessage = error
+                showingAlert = true
+            }
         }
     }
 
@@ -113,13 +133,31 @@ struct StudentRegisterView: View {
             return
         }
 
-        isAuthenticated = true
-        path = [.home(.student)]
+        Task {
+            do {
+                try await authService.registerStudent(
+                    email: email,
+                    password: password,
+                    fullName: fullName,
+                    phone: phone,
+                    uniEmail: uniEmail,
+                    iban: iban
+                )
+                // Navigation is handled by onChange modifier
+            } catch {
+                alertMessage = authService.errorMessage ?? "Registration failed. Please try again."
+                showingAlert = true
+            }
+        }
     }
 }
 
 #Preview("StudentRegisterView") {
     NavigationStack {
-        StudentRegisterView(isAuthenticated: .constant(false), path: .constant([]))
+        StudentRegisterView(
+            isAuthenticated: .constant(false),
+            path: .constant([])
+        )
+        .environmentObject(AuthService())
     }
 }

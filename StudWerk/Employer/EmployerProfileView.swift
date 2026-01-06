@@ -123,36 +123,6 @@ struct EmployerProfileView: View {
                         .cornerRadius(12)
                     }
                     
-                    // Statistics Section
-                    VStack(alignment: .leading, spacing: 16) {
-                        Text("Statistics")
-                            .font(.headline)
-                            .fontWeight(.semibold)
-                        
-                        HStack(spacing: 20) {
-                            StatCard(
-                                title: "Active Jobs",
-                                value: "12",
-                                color: .blue, 
-                                icon: "briefcase.fill"
-                            )
-                            
-                            StatCard(
-                                title: "Hired Students",
-                                value: "45",
-                                color: .green,
-                                icon: "person.2.fill"
-                            )
-                            
-                            StatCard(
-                                title: "Total Spent",
-                                value: "€2.4K",
-                                color: .orange,
-                                icon: "eurosign.circle.fill"
-                            )
-                        }
-                    }
-                    
                     // Settings Button
                     Button(action: {
                         showingSettings = true

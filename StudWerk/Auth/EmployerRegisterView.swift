@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct EmployerRegisterView: View {
+    @EnvironmentObject var authService: AuthService
     @Binding var isAuthenticated: Bool
     @Binding var path: [Route]
 
@@ -53,14 +54,22 @@ struct EmployerRegisterView: View {
                 )
 
                 Button(action: registerEmployer) {
-                    Text("Create Account")
-                        .font(.headline).fontWeight(.semibold)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 50)
-                        .background(Color.blue)
-                        .cornerRadius(12)
+                    HStack {
+                        if authService.isLoading {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        } else {
+                            Text("Create Account")
+                                .font(.headline).fontWeight(.semibold)
+                        }
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 50)
+                    .background(authService.isLoading ? Color.gray : Color.blue)
+                    .cornerRadius(12)
                 }
+                .disabled(authService.isLoading)
 
                 Spacer(minLength: 20)
             }
@@ -73,6 +82,17 @@ struct EmployerRegisterView: View {
             Button("OK") { }
         } message: {
             Text(alertMessage)
+        }
+        .onChange(of: authService.isAuthenticated) { oldValue, newValue in
+            if newValue, let user = authService.currentUser {
+                path = [.home(user.userType)]
+            }
+        }
+        .onChange(of: authService.errorMessage) { oldValue, newValue in
+            if let error = newValue {
+                alertMessage = error
+                showingAlert = true
+            }
         }
     }
 
@@ -109,13 +129,30 @@ struct EmployerRegisterView: View {
             return
         }
 
-        isAuthenticated = true
-        path = [.home(.employer)]
+        Task {
+            do {
+                try await authService.registerEmployer(
+                    email: email,
+                    password: password,
+                    companyName: companyName,
+                    phone: phone,
+                    companyAddress: companyAddress
+                )
+                // Navigation is handled by onChange modifier
+            } catch {
+                alertMessage = authService.errorMessage ?? "Registration failed. Please try again."
+                showingAlert = true
+            }
+        }
     }
 }
 
 #Preview("EmployerRegisterView") {
     NavigationStack {
-        EmployerRegisterView(isAuthenticated: .constant(false), path: .constant([]))
+        EmployerRegisterView(
+            isAuthenticated: .constant(false),
+            path: .constant([])
+        )
+        .environmentObject(AuthService())
     }
 }
