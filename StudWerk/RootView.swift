@@ -12,17 +12,23 @@ struct RootView: View {
 
     var body: some View {
         NavigationStack {
-            switch app.screen {
-            case .login:
-                LoginView()
-            case .userType:
-                UserTypeSelectionView()
-            case .studentRegister:
-                StudentRegisterView()
-            case .employerRegister:
-                EmployerRegisterView()
-            case .main(let type):
-                MainTabView(userType: type)
+            Group {
+                switch app.screen {
+                case .login:
+                    LoginView()
+
+                case .userType:
+                    UserTypeSelectionView()
+
+                case .studentRegister:
+                    StudentRegisterView()
+
+                case .employerRegister:
+                    EmployerRegisterView()
+
+                case .main(let type):
+                    MainTabView(userType: type)
+                }
             }
         }
     }
