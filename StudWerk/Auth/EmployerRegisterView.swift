@@ -138,9 +138,7 @@ struct EmployerRegisterView: View {
 
             } catch {
                 let ns = error as NSError
-                print("🔥 EMPLOYER REGISTER ERROR:", ns)
-                print("🔥 EMPLOYER REGISTER USERINFO:", ns.userInfo)
-
+                
                 await MainActor.run {
                     isLoading = false
                     alertMessage = """

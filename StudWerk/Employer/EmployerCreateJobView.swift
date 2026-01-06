@@ -195,8 +195,6 @@ struct EmployerCreateJobView: View {
                 }
                 .padding(.horizontal, 20)
             }
-            .navigationTitle("Create Job")
-            .navigationBarTitleDisplayMode(.inline)
         }
         .alert("Job Created!", isPresented: $showingSuccessAlert) {
             Button("OK") {

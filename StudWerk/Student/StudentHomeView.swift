@@ -131,7 +131,6 @@ struct StudentHomeView: View {
                 .padding(.bottom, 20)
             }
             .navigationTitle("StudWerk")
-            .navigationBarTitleDisplayMode(.large)
         }
     }
 }

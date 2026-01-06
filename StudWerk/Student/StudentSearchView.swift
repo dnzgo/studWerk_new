@@ -99,7 +99,6 @@ struct StudentSearchView: View {
                 }
             }
             .navigationTitle("Search Jobs")
-            .navigationBarTitleDisplayMode(.large)
         }
         .sheet(isPresented: $showingFilters) {
             SearchFiltersView(

@@ -149,7 +149,6 @@ struct EmployerProfileView: View {
                 .padding(.bottom, 20)
             }
             .navigationTitle("Profile")
-            .navigationBarTitleDisplayMode(.large)
         }
         .sheet(isPresented: $showingSettings) {
             EmployerSettingsView()

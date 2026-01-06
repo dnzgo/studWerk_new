@@ -45,7 +45,6 @@ struct StudentApplicationsView: View {
                 }
             }
             .navigationTitle("My Applications")
-            .navigationBarTitleDisplayMode(.large)
         }
     }
 }

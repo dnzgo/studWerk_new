@@ -45,7 +45,6 @@ struct EmployerJobsView: View {
                 }
             }
             .navigationTitle("My Jobs")
-            .navigationBarTitleDisplayMode(.large)
         }
     }
 }

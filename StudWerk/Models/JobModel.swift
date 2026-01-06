@@ -17,17 +17,7 @@ struct Job: Identifiable {
     let distance: String
 }
 
-enum JobType: String, CaseIterable {
-    case oneTime = "One-time"
-    case recurring = "Recurring"
 
-    var color: Color {
-        switch self {
-        case .oneTime: return .blue
-        case .recurring: return .green
-        }
-    }
-}
 
 // Extended Job model for search
 extension Job {
