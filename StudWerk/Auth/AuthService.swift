@@ -3,11 +3,12 @@
 //  StudWerk
 //
 //  Created for authentication management
-//  Created by Emir Yalçınkaya on 5.01.2026.
 //
 
 import Foundation
-import Combine
+import FirebaseAuth
+import FirebaseFirestore
+import FirebaseFirestoreSwift
 
 @MainActor
 class AuthService: ObservableObject {
@@ -17,24 +18,27 @@ class AuthService: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     
-    // For now, we'll use a simple in-memory store
-    // Later we'll replace this with Firebase/database calls
-    private var users: [String: User] = [:] // email -> User
-    private var passwords: [String: String] = [:] // email -> hashed password
+    private let db = Firestore.firestore()
+    private var authStateListener: AuthStateDidChangeListenerHandle?
     
     init() {
-        // Check if user is already logged in (for session persistence)
-        // This will be implemented with Firebase later
-        checkAuthState()
+        // Listen to authentication state changes
+        authStateListener = Auth.auth().addStateDidChangeListener { [weak self] _, firebaseUser in
+            Task { @MainActor in
+                if let firebaseUser = firebaseUser {
+                    await self?.fetchUserData(uid: firebaseUser.uid)
+                } else {
+                    self?.currentUser = nil
+                    self?.isAuthenticated = false
+                }
+            }
+        }
     }
     
-    // MARK: - Authentication State
-    
-    private func checkAuthState() {
-        // TODO: Check for stored session/token
-        // For now, start with no authenticated user
-        isAuthenticated = false
-        currentUser = nil
+    deinit {
+        if let listener = authStateListener {
+            Auth.auth().removeStateDidChangeListener(listener)
+        }
     }
     
     // MARK: - Login
@@ -57,26 +61,33 @@ class AuthService: ObservableObject {
             throw AuthError.invalidEmail
         }
         
-        // Simulate network delay
-        try await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
-        
-        // Check if user exists
-        guard let user = users[email.lowercased()] else {
-            errorMessage = "Invalid email or password."
+        do {
+            // Sign in with Firebase
+            let result = try await Auth.auth().signIn(withEmail: email, password: password)
+            // Fetch user data - this will automatically update isAuthenticated via the listener
+            await fetchUserData(uid: result.user.uid)
+        } catch {
+            // Handle Firebase errors
+            if let error = error as NSError? {
+                switch error.code {
+                case AuthErrorCode.wrongPassword.rawValue,
+                     AuthErrorCode.userNotFound.rawValue,
+                     AuthErrorCode.invalidEmail.rawValue:
+                    errorMessage = "Invalid email or password."
+                case AuthErrorCode.networkError.rawValue:
+                    errorMessage = "Network error. Please check your connection."
+                case AuthErrorCode.tooManyRequests.rawValue:
+                    errorMessage = "Too many failed attempts. Please try again later."
+                default:
+                    errorMessage = error.localizedDescription
+                }
+            } else {
+                errorMessage = "Login failed. Please try again."
+            }
             isLoading = false
             throw AuthError.invalidCredentials
         }
         
-        // Check password (in production, this would be hashed)
-        guard passwords[email.lowercased()] == password else {
-            errorMessage = "Invalid email or password."
-            isLoading = false
-            throw AuthError.invalidCredentials
-        }
-        
-        // Success - set authenticated user
-        currentUser = user
-        isAuthenticated = true
         isLoading = false
     }
     
@@ -115,46 +126,72 @@ class AuthService: ObservableObject {
             throw AuthError.invalidEmail
         }
         
-        // Check if email already exists
-        let emailKey = email.lowercased()
-        guard users[emailKey] == nil else {
-            errorMessage = "An account with this email already exists."
-            isLoading = false
-            throw AuthError.emailAlreadyExists
-        }
-        
-        // Validate password strength (minimum 6 characters)
+        // Validate password strength
         guard password.count >= 6 else {
             errorMessage = "Password must be at least 6 characters long."
             isLoading = false
             throw AuthError.weakPassword
         }
         
-        // Simulate network delay
-        try await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+        do {
+            // Create Firebase Auth user
+            let result = try await Auth.auth().createUser(withEmail: email, password: password)
+            let userId = result.user.uid
+            
+            // Create user object
+            let user = User(
+                id: userId,
+                name: fullName,
+                email: email,
+                userType: .student,
+                phone: phone,
+                createdAt: Date(),
+                uniEmail: uniEmail,
+                iban: iban
+            )
+            
+            // Save user to Firestore
+            try db.collection("users").document(userId).setData(from: user)
+            
+            // Also save student-specific profile
+            let studentProfile: [String: Any] = [
+                "userId": userId,
+                "fullName": fullName,
+                "email": email,
+                "phone": phone,
+                "uniEmail": uniEmail,
+                "iban": iban,
+                "createdAt": Timestamp(date: Date())
+            ]
+            
+            try await db.collection("students").document(userId).setData(studentProfile)
+            
+            // Set current user (fetchUserData will be called by the auth state listener)
+            currentUser = user
+            isAuthenticated = true
+            
+        } catch {
+            // Handle Firebase errors
+            if let error = error as NSError? {
+                switch error.code {
+                case AuthErrorCode.emailAlreadyInUse.rawValue:
+                    errorMessage = "An account with this email already exists."
+                case AuthErrorCode.weakPassword.rawValue:
+                    errorMessage = "Password is too weak. Please choose a stronger password."
+                case AuthErrorCode.invalidEmail.rawValue:
+                    errorMessage = "Please enter a valid email address."
+                case AuthErrorCode.networkError.rawValue:
+                    errorMessage = "Network error. Please check your connection."
+                default:
+                    errorMessage = error.localizedDescription
+                }
+            } else {
+                errorMessage = "Registration failed. Please try again."
+            }
+            isLoading = false
+            throw AuthError.unknown
+        }
         
-        // Create user ID (in production, this would come from Firebase)
-        let userId = UUID().uuidString
-        
-        // Create user object
-        let user = User(
-            id: userId,
-            name: fullName,
-            email: email,
-            userType: .student,
-            phone: phone,
-            createdAt: Date(),
-            uniEmail: uniEmail,
-            iban: iban
-        )
-        
-        // Store user and password (in production, password would be hashed)
-        users[emailKey] = user
-        passwords[emailKey] = password // In production: hash this!
-        
-        // Set as current user
-        currentUser = user
-        isAuthenticated = true
         isLoading = false
     }
     
@@ -185,14 +222,6 @@ class AuthService: ObservableObject {
             throw AuthError.invalidEmail
         }
         
-        // Check if email already exists
-        let emailKey = email.lowercased()
-        guard users[emailKey] == nil else {
-            errorMessage = "An account with this email already exists."
-            isLoading = false
-            throw AuthError.emailAlreadyExists
-        }
-        
         // Validate password strength
         guard password.count >= 6 else {
             errorMessage = "Password must be at least 6 characters long."
@@ -200,40 +229,101 @@ class AuthService: ObservableObject {
             throw AuthError.weakPassword
         }
         
-        // Simulate network delay
-        try await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+        do {
+            // Create Firebase Auth user
+            let result = try await Auth.auth().createUser(withEmail: email, password: password)
+            let userId = result.user.uid
+            
+            // Create user object
+            let user = User(
+                id: userId,
+                name: companyName,
+                email: email,
+                userType: .employer,
+                phone: phone,
+                createdAt: Date(),
+                companyName: companyName,
+                companyAddress: companyAddress
+            )
+            
+            // Save user to Firestore
+            try db.collection("users").document(userId).setData(from: user)
+            
+            // Also save employer-specific profile
+            let employerProfile: [String: Any] = [
+                "userId": userId,
+                "companyName": companyName,
+                "email": email,
+                "phone": phone,
+                "companyAddress": companyAddress,
+                "createdAt": Timestamp(date: Date())
+            ]
+            
+            try await db.collection("employers").document(userId).setData(employerProfile)
+            
+            // Set current user
+            currentUser = user
+            isAuthenticated = true
+            
+        } catch {
+            // Handle Firebase errors
+            if let error = error as NSError? {
+                switch error.code {
+                case AuthErrorCode.emailAlreadyInUse.rawValue:
+                    errorMessage = "An account with this email already exists."
+                case AuthErrorCode.weakPassword.rawValue:
+                    errorMessage = "Password is too weak. Please choose a stronger password."
+                case AuthErrorCode.invalidEmail.rawValue:
+                    errorMessage = "Please enter a valid email address."
+                case AuthErrorCode.networkError.rawValue:
+                    errorMessage = "Network error. Please check your connection."
+                default:
+                    errorMessage = error.localizedDescription
+                }
+            } else {
+                errorMessage = "Registration failed. Please try again."
+            }
+            isLoading = false
+            throw AuthError.unknown
+        }
         
-        // Create user ID
-        let userId = UUID().uuidString
-        
-        // Create user object
-        let user = User(
-            id: userId,
-            name: companyName,
-            email: email,
-            userType: .employer,
-            phone: phone,
-            createdAt: Date(),
-            companyName: companyName,
-            companyAddress: companyAddress
-        )
-        
-        // Store user and password
-        users[emailKey] = user
-        passwords[emailKey] = password // In production: hash this!
-        
-        // Set as current user
-        currentUser = user
-        isAuthenticated = true
         isLoading = false
+    }
+    
+    // MARK: - Fetch User Data
+    
+    private func fetchUserData(uid: String) async {
+        do {
+            let document = try await db.collection("users").document(uid).getDocument()
+            
+            if document.exists {
+                let user = try document.data(as: User.self)
+                currentUser = user
+                isAuthenticated = true
+            } else {
+                // User document doesn't exist - might be a new user
+                // This shouldn't happen, but handle gracefully
+                currentUser = nil
+                isAuthenticated = false
+            }
+        } catch {
+            print("Error fetching user data: \(error.localizedDescription)")
+            currentUser = nil
+            isAuthenticated = false
+        }
     }
     
     // MARK: - Logout
     
-    func logout() {
-        currentUser = nil
-        isAuthenticated = false
-        errorMessage = nil
+    func logout() throws {
+        do {
+            try Auth.auth().signOut()
+            currentUser = nil
+            isAuthenticated = false
+            errorMessage = nil
+        } catch {
+            throw AuthError.unknown
+        }
     }
     
     // MARK: - Helper Methods
