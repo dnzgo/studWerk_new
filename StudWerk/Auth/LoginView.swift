@@ -8,13 +8,12 @@
 import SwiftUI
 
 struct LoginView: View {
-    @EnvironmentObject var authService: AuthService
-    @Binding var isAuthenticated: Bool
-    @Binding var path: [Route]
+    @EnvironmentObject var app: AppState
 
     @State private var email = ""
     @State private var password = ""
 
+    @State private var isLoading = false
     @State private var showingAlert = false
     @State private var alertMessage = ""
 
@@ -24,7 +23,6 @@ struct LoginView: View {
 
             VStack(spacing: 22) {
 
-                // Header
                 VStack(spacing: 10) {
                     Image(systemName: "graduationcap.fill")
                         .font(.system(size: 100))
@@ -39,7 +37,6 @@ struct LoginView: View {
                         .foregroundColor(.secondary)
                 }
 
-                // Form Card (plain)
                 VStack(spacing: 14) {
                     labeledTextField(
                         title: "Email",
@@ -48,11 +45,13 @@ struct LoginView: View {
                         keyboard: .emailAddress
                     )
                     .textInputAutocapitalization(.never)
+                    .textContentType(.username)
 
                     labeledSecureField(
                         title: "Password",
                         placeholder: "Enter your password",
-                        text: $password
+                        text: $password,
+                        contentType: .password
                     )
                 }
                 .padding(16)
@@ -62,12 +61,10 @@ struct LoginView: View {
                         .shadow(color: .black.opacity(0.06), radius: 12, y: 5)
                 )
 
-                // Sign in
                 Button(action: handleLogin) {
                     HStack {
-                        if authService.isLoading {
-                            ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        if isLoading {
+                            ProgressView().progressViewStyle(.circular)
                         } else {
                             Text("Sign In")
                                 .font(.headline)
@@ -77,15 +74,14 @@ struct LoginView: View {
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .frame(height: 50)
-                    .background(authService.isLoading ? Color.gray : Color.blue)
+                    .background(isLoading ? Color.gray : Color.blue)
                     .cornerRadius(12)
                 }
-                .disabled(authService.isLoading)
+                .disabled(isLoading)
                 .padding(.top, 6)
 
-                // Register
                 Button {
-                    path.append(.userType)
+                    app.goToRegisterFlow()
                 } label: {
                     Text("Don't have an account? Register")
                         .font(.footnote)
@@ -101,20 +97,7 @@ struct LoginView: View {
         .background(Color(.systemBackground))
         .alert("Login Error", isPresented: $showingAlert) {
             Button("OK") { }
-        } message: {
-            Text(alertMessage)
-        }
-        .onChange(of: authService.isAuthenticated) { oldValue, newValue in
-            if newValue, let user = authService.currentUser {
-                path = [.home(user.userType)]
-            }
-        }
-        .onChange(of: authService.errorMessage) { oldValue, newValue in
-            if let error = newValue {
-                alertMessage = error
-                showingAlert = true
-            }
-        }
+        } message: { Text(alertMessage) }
     }
 
     private func labeledTextField(
@@ -124,9 +107,7 @@ struct LoginView: View {
         keyboard: UIKeyboardType
     ) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .font(.headline)
-
+            Text(title).font(.headline)
             TextField(placeholder, text: text)
                 .keyboardType(keyboard)
                 .autocorrectionDisabled()
@@ -137,13 +118,13 @@ struct LoginView: View {
     private func labeledSecureField(
         title: String,
         placeholder: String,
-        text: Binding<String>
+        text: Binding<String>,
+        contentType: UITextContentType
     ) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .font(.headline)
-
+            Text(title).font(.headline)
             SecureField(placeholder, text: text)
+                .textContentType(contentType)
                 .textFieldStyle(.roundedBorder)
         }
     }
@@ -155,13 +136,21 @@ struct LoginView: View {
             return
         }
 
+        isLoading = true
+
         Task {
             do {
-                try await authService.login(email: email, password: password)
-                // Navigation is handled by onChange modifier
+                let res = try await AuthManager.shared.login(email: email, password: password)
+                await MainActor.run {
+                    isLoading = false
+                    app.loginSuccess(uid: res.uid, email: res.email, type: res.type)
+                }
             } catch {
-                alertMessage = authService.errorMessage ?? "Login failed. Please try again."
-                showingAlert = true
+                await MainActor.run {
+                    isLoading = false
+                    alertMessage = error.localizedDescription
+                    showingAlert = true
+                }
             }
         }
     }
@@ -169,10 +158,7 @@ struct LoginView: View {
 
 #Preview("LoginView") {
     NavigationStack {
-        LoginView(
-            isAuthenticated: .constant(false),
-            path: .constant([])
-        )
-        .environmentObject(AuthService())
+        LoginView().environmentObject(AppState())
     }
 }
+

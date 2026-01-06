@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct UserTypeSelectionView: View {
-    @Binding var path: [Route]
+    @EnvironmentObject var app: AppState
     @State private var selected: UserType = .student
 
     var body: some View {
@@ -52,7 +52,7 @@ struct UserTypeSelectionView: View {
             .frame(maxWidth: 620)
 
             Button {
-                path.append(.register(selected))
+                app.chooseUserType(selected)
             } label: {
                 Text("Continue")
                     .font(.headline)
@@ -70,7 +70,7 @@ struct UserTypeSelectionView: View {
         .padding(.horizontal, 24)
         .background(Color(.systemBackground))
         .safeAreaInset(edge: .top) {
-        Color.clear.frame(height: 60)
+            Color.clear.frame(height: 60)
         }
     }
 }
@@ -121,6 +121,8 @@ struct SimpleUserTypeButton: View {
 
 #Preview("UserTypeSelectionView") {
     NavigationStack {
-        UserTypeSelectionView(path: .constant([]))
+        UserTypeSelectionView()
+            .environmentObject(AppState())
     }
 }
+

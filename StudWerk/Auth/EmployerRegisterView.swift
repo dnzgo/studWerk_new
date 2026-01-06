@@ -8,9 +8,7 @@
 import SwiftUI
 
 struct EmployerRegisterView: View {
-    @EnvironmentObject var authService: AuthService
-    @Binding var isAuthenticated: Bool
-    @Binding var path: [Route]
+    @EnvironmentObject var app: AppState
 
     @State private var companyName = ""
     @State private var email = ""
@@ -19,80 +17,71 @@ struct EmployerRegisterView: View {
     @State private var password = ""
     @State private var confirmPassword = ""
 
+    @State private var isLoading = false
     @State private var showingAlert = false
     @State private var alertMessage = ""
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 18) {
+        VStack(spacing: 18) {
 
-                Text("Create Account")
-                    .font(.title2).bold()
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.top, 8)
+            Text("Create Account")
+                .font(.title2).bold()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.top, 8)
 
-                VStack(spacing: 14) {
-                    labeledTextField("Company Name", "Enter company name", text: $companyName, keyboard: .default)
-                        .textInputAutocapitalization(.words)
+            VStack(spacing: 14) {
+                labeledTextField("Company Name", "Enter company name", text: $companyName, keyboard: .default)
+                    .textInputAutocapitalization(.words)
+                    .textContentType(.organizationName)
 
-                    labeledTextField("Email", "Enter email", text: $email, keyboard: .emailAddress)
-                        .textInputAutocapitalization(.never)
+                labeledTextField("Email", "Enter email", text: $email, keyboard: .emailAddress)
+                    .textInputAutocapitalization(.never)
+                    .textContentType(.emailAddress)
 
-                    labeledTextField("Phone Number", "Enter phone number", text: $phone, keyboard: .phonePad)
+                labeledTextField("Phone Number", "Enter phone number", text: $phone, keyboard: .phonePad)
+                    .textContentType(.telephoneNumber)
 
-                    labeledTextField("Company Address", "Enter company address", text: $companyAddress, keyboard: .default)
-                        .textInputAutocapitalization(.words)
+                labeledTextField("Company Address", "Enter company address", text: $companyAddress, keyboard: .default)
+                    .textInputAutocapitalization(.words)
+                    .textContentType(.fullStreetAddress)
 
-                    labeledSecureField("Password", "Create a password", text: $password)
-                    labeledSecureField("Confirm Password", "Confirm password", text: $confirmPassword)
-                }
-                .padding(16)
-                .background(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(Color(.systemBackground))
-                        .shadow(color: .black.opacity(0.06), radius: 12, y: 5)
-                )
-
-                Button(action: registerEmployer) {
-                    HStack {
-                        if authService.isLoading {
-                            ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                        } else {
-                            Text("Create Account")
-                                .font(.headline).fontWeight(.semibold)
-                        }
-                    }
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 50)
-                    .background(authService.isLoading ? Color.gray : Color.blue)
-                    .cornerRadius(12)
-                }
-                .disabled(authService.isLoading)
-
-                Spacer(minLength: 20)
+                labeledSecureField("Password", "Create a password", text: $password, contentType: .newPassword)
+                labeledSecureField("Confirm Password", "Confirm password", text: $confirmPassword, contentType: .newPassword)
             }
-            .padding(.horizontal, 24)
-            .padding(.bottom, 30)
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(Color(.systemBackground))
+                    .shadow(color: .black.opacity(0.06), radius: 12, y: 5)
+            )
+
+            Button(action: registerEmployer) {
+                HStack {
+                    if isLoading {
+                        ProgressView().progressViewStyle(.circular)
+                    } else {
+                        Text("Create Account")
+                            .font(.headline).fontWeight(.semibold)
+                    }
+                }
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .frame(height: 50)
+                .background(isLoading ? Color.gray : Color.blue)
+                .cornerRadius(12)
+            }
+            .disabled(isLoading)
+
+            Spacer(minLength: 0)
         }
+        .padding(.horizontal, 24)
+        .padding(.bottom, 30)
         .navigationTitle("Employer Register")
         .navigationBarTitleDisplayMode(.inline)
         .alert("Register Error", isPresented: $showingAlert) {
             Button("OK") { }
         } message: {
             Text(alertMessage)
-        }
-        .onChange(of: authService.isAuthenticated) { oldValue, newValue in
-            if newValue, let user = authService.currentUser {
-                path = [.home(user.userType)]
-            }
-        }
-        .onChange(of: authService.errorMessage) { oldValue, newValue in
-            if let error = newValue {
-                alertMessage = error
-                showingAlert = true
-            }
         }
     }
 
@@ -106,10 +95,11 @@ struct EmployerRegisterView: View {
         }
     }
 
-    private func labeledSecureField(_ title: String, _ placeholder: String, text: Binding<String>) -> some View {
+    private func labeledSecureField(_ title: String, _ placeholder: String, text: Binding<String>, contentType: UITextContentType) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title).font(.headline)
             SecureField(placeholder, text: text)
+                .textContentType(contentType)
                 .textFieldStyle(.roundedBorder)
         }
     }
@@ -129,19 +119,37 @@ struct EmployerRegisterView: View {
             return
         }
 
+        isLoading = true
+
         Task {
             do {
-                try await authService.registerEmployer(
-                    email: email,
-                    password: password,
+                let res = try await AuthManager.shared.registerEmployer(
                     companyName: companyName,
+                    email: email,
                     phone: phone,
-                    companyAddress: companyAddress
+                    companyAddress: companyAddress,
+                    password: password
                 )
-                // Navigation is handled by onChange modifier
+
+                await MainActor.run {
+                    isLoading = false
+                    app.loginSuccess(uid: res.uid, email: res.email, type: res.type)
+                }
+
             } catch {
-                alertMessage = authService.errorMessage ?? "Registration failed. Please try again."
-                showingAlert = true
+                let ns = error as NSError
+                print("🔥 EMPLOYER REGISTER ERROR:", ns)
+                print("🔥 EMPLOYER REGISTER USERINFO:", ns.userInfo)
+
+                await MainActor.run {
+                    isLoading = false
+                    alertMessage = """
+                    \(ns.domain) (code: \(ns.code))
+                    \(ns.localizedDescription)
+                    \(ns.userInfo)
+                    """
+                    showingAlert = true
+                }
             }
         }
     }
@@ -149,10 +157,7 @@ struct EmployerRegisterView: View {
 
 #Preview("EmployerRegisterView") {
     NavigationStack {
-        EmployerRegisterView(
-            isAuthenticated: .constant(false),
-            path: .constant([])
-        )
-        .environmentObject(AuthService())
+        EmployerRegisterView()
+            .environmentObject(AppState())
     }
 }

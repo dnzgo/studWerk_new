@@ -56,14 +56,14 @@ struct MainTabView: View {
                 
                 EmployerCreateJobView()
                     .tabItem {
-                        Image(systemName: "book.fill")
+                        Image(systemName: "plus.circle.fill")
                         Text("Applications")
                     }
                     .tag(1)
                 
                 EmployerJobsView()
                     .tabItem {
-                        Image(systemName: "person.crop.circle")
+                        Image(systemName: "briefcase.fill")
                         Text("Profile")
                     }
                     .tag(2)
