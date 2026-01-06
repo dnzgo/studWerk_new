@@ -7,7 +7,16 @@
 
 import Foundation
 
-enum UserType: String, Codable, CaseIterable {
+enum UserType: String, Codable, CaseIterable, Identifiable {
     case student
     case employer
+    
+    var id: String { rawValue }
+
+       var title: String {
+           switch self {
+           case .student: return "Student"
+           case .employer: return "Employer"
+        }
+    }
 }
