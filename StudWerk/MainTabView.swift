@@ -75,8 +75,6 @@ struct MainTabView: View {
                     }
                     .tag(3)
             }
-            
-            
         }
     }
 }
