@@ -17,22 +17,6 @@ struct EmployerHomeView: View {
         NavigationView {
             ScrollView {
                 VStack (spacing : 24) {
-                    // header
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            VStack(alignment: .leading, spacing : 4) {
-                                Text("Dashboard")
-                                    .font(.largeTitle)
-                                    .fontWeight(.bold)
-                            }
-                            
-                            Spacer()
-                            
-                        }
-                        .padding(.horizontal, 20)
-                        .padding(.top, 10)
-                    }
-                    
                     // statistic cards
                     VStack(spacing : 16) {
                         HStack(spacing : 16) {
@@ -116,7 +100,8 @@ struct EmployerHomeView: View {
                     Spacer()
                 }
             }
-            
+            .navigationTitle("Dashboard")
+            .navigationBarTitleDisplayMode(.large)
         }
         .task {
             await loadData()
