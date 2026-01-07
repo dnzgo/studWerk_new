@@ -8,7 +8,11 @@
 import SwiftUI
 
 struct StudentApplicationsView: View {
+    @EnvironmentObject var appState: AppState
     @State private var selectedTab = 0
+    @State private var applications: [Application] = []
+    @State private var isLoading = false
+    @State private var errorMessage: String? = nil
     
     var body: some View {
         NavigationView {
@@ -26,17 +30,23 @@ struct StudentApplicationsView: View {
                 // Content
                 ScrollView {
                     LazyVStack(spacing: 12) {
-                        if selectedTab == 0 {
-                            ForEach(pendingApplications, id: \.id) { application in
-                                ApplicationCard(application: application)
+                        if isLoading {
+                            ProgressView()
+                                .padding(.top, 40)
+                        } else if filteredApplications.isEmpty {
+                            VStack(spacing: 16) {
+                                Image(systemName: "doc.text")
+                                    .font(.system(size: 50))
+                                    .foregroundColor(.secondary)
+                                Text("No applications found")
+                                    .font(.headline)
+                                    .foregroundColor(.secondary)
                             }
-                        } else if selectedTab == 1 {
-                            ForEach(acceptedApplications, id: \.id) { application in
-                                ApplicationCard(application: application)
-                            }
+                            .padding(.top, 40)
                         } else {
-                            ForEach(completedApplications, id: \.id) { application in
+                            ForEach(filteredApplications, id: \.id) { application in
                                 ApplicationCard(application: application)
+                                    .environmentObject(appState)
                             }
                         }
                     }
@@ -46,27 +56,77 @@ struct StudentApplicationsView: View {
             }
             .navigationTitle("My Applications")
         }
+        .task {
+            await loadApplications()
+        }
+        .refreshable {
+            await loadApplications()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ApplicationWithdrawn"))) { _ in
+            Task {
+                await loadApplications()
+            }
+        }
+        .alert("Error", isPresented: Binding(
+            get: { errorMessage != nil },
+            set: { if !$0 { errorMessage = nil } }
+        )) {
+            Button("OK") { }
+        } message: {
+            if let errorMessage = errorMessage {
+                Text(errorMessage)
+            }
+        }
+    }
+    
+    private var filteredApplications: [Application] {
+        switch selectedTab {
+        case 0:
+            return applications.filter { $0.applicationStatus == .pending }
+        case 1:
+            return applications.filter { $0.applicationStatus == .accepted }
+        case 2:
+            return applications.filter { $0.applicationStatus == .completed }
+        default:
+            return []
+        }
+    }
+    
+    private func loadApplications() async {
+        guard let studentID = appState.uid else {
+            await MainActor.run {
+                errorMessage = "You must be logged in to view applications"
+            }
+            return
+        }
+        
+        print("🔍 StudentApplicationsView: Loading applications for student \(studentID)")
+        await MainActor.run {
+            isLoading = true
+            errorMessage = nil
+        }
+        
+        do {
+            let fetchedApplications = try await ApplicationManager.shared.fetchApplicationsByStudent(studentID: studentID)
+            print("✅ StudentApplicationsView: Fetched \(fetchedApplications.count) applications")
+            await MainActor.run {
+                self.applications = fetchedApplications
+                isLoading = false
+                errorMessage = nil
+            }
+        } catch {
+            await MainActor.run {
+                isLoading = false
+                let errorDesc = error.localizedDescription
+                errorMessage = "Failed to load applications: \(errorDesc)"
+                print("❌ Error loading applications: \(errorDesc)")
+                print("❌ Full error: \(error)")
+            }
+        }
     }
 }
 
-
-
-let pendingApplications = [
-    JobApplication(company: "Tech Startup GmbH", position: "Software Developer Intern", pay: "€180", appliedDate: "2 days ago", status: .pending),
-    JobApplication(company: "Café Central", position: "Barista", pay: "€100", appliedDate: "1 week ago", status: .pending),
-    JobApplication(company: "Retail Store ABC", position: "Sales Assistant", pay: "€140", appliedDate: "3 days ago", status: .pending)
-]
-
-let acceptedApplications = [
-    JobApplication(company: "Marketing Agency", position: "Social Media Manager", pay: "€16", appliedDate: "2 weeks ago", status: .accepted),
-    JobApplication(company: "Restaurant XYZ", position: "Waiter", pay: "€13", appliedDate: "1 week ago", status: .accepted)
-]
-
-let completedApplications = [
-    JobApplication(company: "Digital Agency", position: "Content Writer", pay: "€150", appliedDate: "1 month ago", status: .completed),
-    JobApplication(company: "Tech Company", position: "Data Entry", pay: "€150", appliedDate: "2 months ago", status: .completed)
-]
-
 #Preview {
     StudentApplicationsView()
+        .environmentObject(AppState())
 }

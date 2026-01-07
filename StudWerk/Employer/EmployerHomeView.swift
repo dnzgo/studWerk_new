@@ -10,6 +10,7 @@ import SwiftUI
 struct EmployerHomeView: View {
     @EnvironmentObject var appState: AppState
     @State private var jobs: [Job] = []
+    @State private var applications: [Application] = []
     @State private var isLoading = false
     
     var body : some View {
@@ -82,7 +83,27 @@ struct EmployerHomeView: View {
                         
                         ScrollView(.vertical, showsIndicators: false) {
                             VStack(spacing: 16) {
-                                ForEach(recentApplications, id: \.id) { application in ApplicationSummaryCard(application: application)
+                                if recentApplications.isEmpty {
+                                    VStack(spacing: 16) {
+                                        Image(systemName: "doc.text")
+                                            .font(.system(size: 50))
+                                            .foregroundColor(.secondary)
+                                        Text("No recent applications")
+                                            .font(.headline)
+                                            .foregroundColor(.secondary)
+                                        Text("Applications will appear here when students apply to your jobs")
+                                            .font(.subheadline)
+                                            .foregroundColor(.secondary)
+                                            .multilineTextAlignment(.center)
+                                    }
+                                    .padding(.top, 40)
+                                } else {
+                                    ForEach(recentApplications, id: \.0.id) { applicationTuple in
+                                        ApplicationSummaryCard(
+                                            application: applicationTuple.0,
+                                            studentID: applicationTuple.1
+                                        )
+                                    }
                                 }
                             }
                             .padding(.horizontal, 20)
@@ -92,10 +113,10 @@ struct EmployerHomeView: View {
             }
         }
         .task {
-            await loadJobs()
+            await loadData()
         }
         .refreshable {
-            await loadJobs()
+            await loadData()
         }
     }
     
@@ -104,13 +125,30 @@ struct EmployerHomeView: View {
     }
     
     private var applicationsCount: Int {
-        // TODO: Fetch real application count
-        0
+        applications.count
     }
     
     private var hiredStudentsCount: Int {
-        // TODO: Fetch real hired students count
-        0
+        applications.filter { $0.applicationStatus == .accepted || $0.applicationStatus == .completed }.count
+    }
+    
+    private var recentApplications: [(ApplicationSummary, String)] {
+        // Get the 5 most recent applications with their studentIDs
+        let recent = applications
+            .sorted { $0.appliedAt > $1.appliedAt }
+            .prefix(5)
+        
+        return recent.map { app in
+            (
+                ApplicationSummary(
+                    id: UUID(),
+                    studentName: "Student", // Will be loaded asynchronously
+                    position: app.position,
+                    timeAgo: app.appliedDate
+                ),
+                app.studentID
+            )
+        }
     }
     
     private var totalSpend: String {
@@ -124,6 +162,11 @@ struct EmployerHomeView: View {
         } else {
             return String(format: "%.0f", total)
         }
+    }
+    
+    private func loadData() async {
+        await loadJobs()
+        await loadApplications()
     }
     
     private func loadJobs() async {
@@ -146,15 +189,22 @@ struct EmployerHomeView: View {
             }
         }
     }
+    
+    private func loadApplications() async {
+        guard let employerID = appState.uid else {
+            return
+        }
+        
+        do {
+            let fetchedApplications = try await ApplicationManager.shared.fetchApplicationsByEmployer(employerID: employerID)
+            await MainActor.run {
+                self.applications = fetchedApplications
+            }
+        } catch {
+            print("Error loading applications: \(error.localizedDescription)")
+        }
+    }
 }
-
-
-let recentApplications = [
-    ApplicationSummary(studentName: "Max Mustermann", position: "Software Developer Intern", timeAgo: "2h ago"),
-    ApplicationSummary(studentName: "Anna Schmidt", position: "Marketing Assistant", timeAgo: "4h ago"),
-    ApplicationSummary(studentName: "Tom Weber", position: "Sales Assistant", timeAgo: "6h ago")
-]
-
 
 #Preview {
     EmployerHomeView()

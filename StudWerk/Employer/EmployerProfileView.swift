@@ -8,12 +8,13 @@
 import SwiftUI
 
 struct EmployerProfileView: View {
-    @State private var employerName = "Max Mustermann"
+    @EnvironmentObject var appState: AppState
+    @State private var employerName = "" // TODO: Fetch from user profile
     @State private var isCompany = false
-    @State private var companyName = "Tech Solutions GmbH"
-    @State private var industry = "Technology"
-    @State private var companySize = "50-100 employees"
-    @State private var location = "Berlin, Germany"
+    @State private var companyName = "" // TODO: Fetch from user profile
+    @State private var industry = "" // TODO: Fetch from user profile
+    @State private var companySize = "" // TODO: Fetch from user profile
+    @State private var location = "" // TODO: Fetch from user profile
     @State private var showingSettings = false
     
     var body: some View {
@@ -33,15 +34,15 @@ struct EmployerProfileView: View {
                             )
                         
                         VStack(spacing: 4) {
-                            Text(isCompany ? companyName : employerName)
+                            Text(isCompany ? (companyName.isEmpty ? "Company" : companyName) : (employerName.isEmpty ? "Employer" : employerName))
                                 .font(.title2)
                                 .fontWeight(.bold)
                             
-                            Text(isCompany ? industry : "Individual Employer")
+                            Text(isCompany ? (industry.isEmpty ? "Company" : industry) : "Individual Employer")
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                             
-                            Text(location)
+                            Text(location.isEmpty ? "" : location)
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }

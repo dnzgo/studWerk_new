@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct StudentSearchView: View {
+    @EnvironmentObject var appState: AppState
     @State private var searchText = ""
     @State private var selectedCategory = "General"
     @State private var selectedDate = Date()
@@ -108,7 +109,8 @@ struct StudentSearchView: View {
                     } else {
                         LazyVStack(spacing: 12) {
                             ForEach(filteredJobs, id: \.id) { job in
-                                SearchJobCard(job: job)
+                                JobCard(job: job)
+                                    .environmentObject(appState)
                             }
                         }
                         .padding(.horizontal, 20)

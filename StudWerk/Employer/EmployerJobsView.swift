@@ -6,12 +6,15 @@
 //
 
 import SwiftUI
+import FirebaseFirestore
 
 struct EmployerJobsView: View {
     @EnvironmentObject var appState: AppState
     @State private var selectedTab = 0
     @State private var jobs: [Job] = []
+    @State private var applications: [Application] = []
     @State private var isLoading = false
+    @State private var isLoadingApplications = false
     @State private var errorMessage: String? = nil
     
     var body: some View {
@@ -49,14 +52,36 @@ struct EmployerJobsView: View {
                                     }
                                     .padding(.top, 40)
                                 } else {
-                                    ForEach(activeJobsList, id: \.id) { job in
-                                        EmployerJobCard(job: job)
+                                    ForEach(activeJobsList, id: \.id) { employerJob in
+                                        EmployerJobCard(
+                                            job: employerJob,
+                                            originalJob: jobs.first { $0.id == employerJob.id }
+                                        )
                                     }
                                 }
                             } else if selectedTab == 1 {
-                                // Applications tab - keep mock data for now
-                                ForEach(jobApplications, id: \.id) { application in
-                                    JobApplicationCard(application: application)
+                                // Applications tab
+                                if isLoadingApplications {
+                                    ProgressView()
+                                        .padding(.top, 40)
+                                } else if applications.isEmpty {
+                                    VStack(spacing: 16) {
+                                        Image(systemName: "doc.text")
+                                            .font(.system(size: 50))
+                                            .foregroundColor(.secondary)
+                                        Text("No applications yet")
+                                            .font(.headline)
+                                            .foregroundColor(.secondary)
+                                        Text("Applications will appear here when students apply to your jobs")
+                                            .font(.subheadline)
+                                            .foregroundColor(.secondary)
+                                            .multilineTextAlignment(.center)
+                                    }
+                                    .padding(.top, 40)
+                                } else {
+                                    ForEach(applications, id: \.id) { application in
+                                        EmployerApplicationCard(application: application)
+                                    }
                                 }
                             } else {
                                 if completedJobsList.isEmpty {
@@ -70,8 +95,11 @@ struct EmployerJobsView: View {
                                     }
                                     .padding(.top, 40)
                                 } else {
-                                    ForEach(completedJobsList, id: \.id) { job in
-                                        EmployerJobCard(job: job)
+                                    ForEach(completedJobsList, id: \.id) { employerJob in
+                                        EmployerJobCard(
+                                            job: employerJob,
+                                            originalJob: jobs.first { $0.id == employerJob.id }
+                                        )
                                     }
                                 }
                             }
@@ -85,9 +113,23 @@ struct EmployerJobsView: View {
         }
         .task {
             await loadJobs()
+            await loadApplications()
         }
         .refreshable {
             await loadJobs()
+            await loadApplications()
+        }
+        .onChange(of: selectedTab) { newValue in
+            if newValue == 1 {
+                Task {
+                    await loadApplications()
+                }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ApplicationStatusUpdated"))) { _ in
+            Task {
+                await loadApplications()
+            }
         }
         .alert("Error", isPresented: Binding(
             get: { errorMessage != nil },
@@ -184,10 +226,41 @@ struct EmployerJobsView: View {
             }
         }
     }
+    
+    private func loadApplications() async {
+        guard let employerID = appState.uid else {
+            print("⚠️ EmployerJobsView: No employerID found for loading applications")
+            return
+        }
+        
+        print("🔍 EmployerJobsView: Loading applications for employerID: \(employerID)")
+        await MainActor.run {
+            isLoadingApplications = true
+        }
+        
+        do {
+            let fetchedApplications = try await ApplicationManager.shared.fetchApplicationsByEmployer(employerID: employerID)
+            print("✅ EmployerJobsView: Fetched \(fetchedApplications.count) applications")
+            await MainActor.run {
+                self.applications = fetchedApplications
+                isLoadingApplications = false
+            }
+        } catch {
+            await MainActor.run {
+                isLoadingApplications = false
+                let errorDesc = error.localizedDescription
+                print("❌ Error loading applications: \(errorDesc)")
+                print("❌ Full error: \(error)")
+            }
+        }
+    }
 }
 
 struct EmployerJobCard: View {
     let job: EmployerJob
+    let originalJob: Job?
+    @EnvironmentObject var appState: AppState
+    @State private var showingJobApplications = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -266,7 +339,7 @@ struct EmployerJobCard: View {
                     Spacer()
                     
                     Button("View Applications") {
-                        // Handle view applications
+                        showingJobApplications = true
                     }
                     .font(.subheadline)
                     .fontWeight(.semibold)
@@ -275,6 +348,14 @@ struct EmployerJobCard: View {
                     .padding(.vertical, 8)
                     .background(Color.blue)
                     .cornerRadius(6)
+                    .sheet(isPresented: $showingJobApplications) {
+                        if let originalJob = originalJob {
+                            NavigationView {
+                                JobApplicationsView(job: originalJob)
+                                    .environmentObject(appState)
+                            }
+                        }
+                    }
                 } else {
                     Button("View Details") {
                         // Handle view details
@@ -297,6 +378,162 @@ struct EmployerJobCard: View {
         .padding()
         .background(Color(.systemGray6))
         .cornerRadius(12)
+    }
+}
+
+struct EmployerApplicationCard: View {
+    let application: Application
+    @State private var studentName = ""
+    @State private var studentPhone = ""
+    @State private var isLoadingStudent = false
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(studentName.isEmpty ? "Loading..." : studentName)
+                        .font(.headline)
+                        .fontWeight(.bold)
+                    
+                    Text(studentPhone.isEmpty ? "Loading..." : studentPhone)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+                
+                Spacer()
+                
+                ApplicationStatusBadge(status: application.applicationStatus)
+            }
+            
+            HStack {
+                Spacer()
+                
+                Image(systemName: "clock")
+                    .foregroundColor(.orange)
+                    .font(.caption)
+                
+                Text(application.appliedDate)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            
+            HStack {
+                Image(systemName: "briefcase")
+                    .foregroundColor(.blue)
+                    .font(.caption)
+                
+                Text(application.position)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                
+                Spacer()
+                
+                Image(systemName: "eurosign.circle.fill")
+                    .foregroundColor(.green)
+                    .font(.caption)
+                
+                Text(application.pay)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            
+            HStack {
+                Button("View Profile") {
+                    // Handle view profile
+                }
+                .font(.subheadline)
+                .fontWeight(.semibold)
+                .foregroundColor(.blue)
+                
+                Spacer()
+                
+                if application.applicationStatus == .pending {
+                    HStack(spacing: 8) {
+                        Button("Reject") {
+                            Task {
+                                await updateApplicationStatus(.rejected)
+                            }
+                        }
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.red)
+                        
+                        Button("Accept") {
+                            Task {
+                                await updateApplicationStatus(.accepted)
+                            }
+                        }
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(Color.green)
+                        .cornerRadius(6)
+                    }
+                } else {
+                    Button("Contact") {
+                        // Handle contact
+                    }
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.blue)
+                }
+            }
+        }
+        .padding()
+        .background(Color(.systemGray6))
+        .cornerRadius(12)
+        .onAppear {
+            Task {
+                await loadStudentName()
+            }
+        }
+    }
+    
+    private func loadStudentName() async {
+        guard !isLoadingStudent else { return }
+        
+        await MainActor.run {
+            isLoadingStudent = true
+        }
+        
+        do {
+            let db = Firestore.firestore()
+            let studentDoc = try await db.collection("students").document(application.studentID).getDocument()
+            
+            if let data = studentDoc.data() {
+                await MainActor.run {
+                    if let name = data["name"] as? String {
+                        studentName = name
+                    }
+                    if let phone = data["phone"] as? String {
+                        studentPhone = phone
+                    }
+                    isLoadingStudent = false
+                }
+            } else {
+                await MainActor.run {
+                    isLoadingStudent = false
+                }
+            }
+        } catch {
+            await MainActor.run {
+                isLoadingStudent = false
+                print("Error loading student info: \(error.localizedDescription)")
+            }
+        }
+    }
+    
+    private func updateApplicationStatus(_ status: ApplicationStatus) async {
+        do {
+            try await ApplicationManager.shared.updateApplicationStatus(applicationID: application.id, status: status)
+            print("✅ Updated application \(application.id) to \(status.rawValue)")
+            // Post notification to reload applications
+            NotificationCenter.default.post(name: NSNotification.Name("ApplicationStatusUpdated"), object: nil)
+        } catch {
+            print("❌ Error updating application status: \(error.localizedDescription)")
+        }
     }
 }
 
@@ -454,14 +691,6 @@ enum JobStatus: String, CaseIterable {
         }
     }
 }
-
-
-// Mock data for applications tab (to be replaced with real data later)
-let jobApplications = [
-    JobApplicationDetail(studentName: "Max Mustermann", position: "Software Developer Intern", rating: 4.5, appliedDate: "2 days ago", experience: "Computer Science student with experience in Python and JavaScript", status: ApplicationStatus.pending),
-    JobApplicationDetail(studentName: "Anna Schmidt", position: "Marketing Assistant", rating: 4.2, appliedDate: "1 day ago", experience: "Marketing student with social media experience", status: ApplicationStatus.pending),
-    JobApplicationDetail(studentName: "Tom Weber", position: "Sales Assistant", rating: 4.8, appliedDate: "3 days ago", experience: "Business student with retail experience", status: ApplicationStatus.accepted)
-]
 
 #Preview {
     EmployerJobsView()

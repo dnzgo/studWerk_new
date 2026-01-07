@@ -8,16 +8,18 @@
 import SwiftUI
 
 struct StudentProfileView: View {
+    @EnvironmentObject var appState: AppState
     @State private var workLimit = 20
-    @State private var address = "Musterstraße 123, 10115 Berlin"
-    @State private var university = "Humboldt University Berlin"
-    @State private var studyProgram = "Computer Science"
-    @State private var semester = 3
+    @State private var address = "" // TODO: Fetch from user profile
+    @State private var university = "" // TODO: Fetch from user profile
+    @State private var studyProgram = "" // TODO: Fetch from user profile
+    @State private var semester = 0 // TODO: Fetch from user profile
     @State private var showingSettings = false
-    @State private var currentEarnings = 450.0
+    @State private var currentEarnings = 0.0 // TODO: Calculate from applications
     @State private var monthlyLimit = 1100.0
-    @State private var iban = "DE89 3704 0044 0532 0130 00"
+    @State private var iban = "" // TODO: Fetch from user profile
     @State private var showingPaymentDetails = false
+    @State private var studentName = "" // TODO: Fetch from user profile
     
     var body: some View {
         NavigationView {
@@ -36,15 +38,15 @@ struct StudentProfileView: View {
                             )
                         
                         VStack(spacing: 4) {
-                            Text("Max Mustermann")
+                            Text(studentName.isEmpty ? "Student" : studentName)
                                 .font(.title2)
                                 .fontWeight(.bold)
                             
-                            Text("Computer Science Student")
+                            Text(studyProgram.isEmpty ? "Student" : "\(studyProgram) Student")
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                             
-                            Text("Humboldt University Berlin")
+                            Text(university.isEmpty ? "" : university)
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }

@@ -8,7 +8,9 @@
 import SwiftUI
 
 struct StudentHomeView: View {
+    @EnvironmentObject var appState: AppState
     @State private var jobs: [Job] = []
+    @State private var applications: [Application] = []
     @State private var isLoading = false
     @State private var errorMessage: String? = nil
     
@@ -42,14 +44,14 @@ struct StudentHomeView: View {
                         
                         QuickStatCard(
                             title: "Applications",
-                            value: "3",
+                            value: "\(applicationsCount)",
                             icon: "doc.text.fill",
                             color: .green
                         )
                         
                         QuickStatCard(
                             title: "Earnings",
-                            value: "€450",
+                            value: "€\(totalEarnings)",
                             icon: "eurosign.circle.fill",
                             color: .orange
                         )
@@ -87,14 +89,8 @@ struct StudentHomeView: View {
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 16) {
                                     ForEach(featuredJobs.prefix(3), id: \.id) { job in
-                                        FeaturedJobCard(
-                                            company: job.company,
-                                            position: job.position,
-                                            pay: job.pay,
-                                            location: job.location,
-                                            duration: job.dateString,
-                                            isRemote: false
-                                        )
+                                        FeaturedJobCard(job: job)
+                                            .environmentObject(appState)
                                     }
                                 }
                                 .padding(.horizontal, 20)
@@ -133,6 +129,7 @@ struct StudentHomeView: View {
                             LazyVStack(spacing: 12) {
                                 ForEach(nearbyJobs.prefix(5), id: \.id) { job in
                                     JobCard(job: job)
+                                        .environmentObject(appState)
                                 }
                             }
                             .padding(.horizontal, 20)
@@ -144,10 +141,10 @@ struct StudentHomeView: View {
             .navigationTitle("StudWerk")
         }
         .task {
-            await loadJobs()
+            await loadData()
         }
         .refreshable {
-            await loadJobs()
+            await loadData()
         }
         .alert("Error", isPresented: Binding(
             get: { errorMessage != nil },
@@ -169,6 +166,31 @@ struct StudentHomeView: View {
     private var nearbyJobs: [Job] {
         // For now, return all jobs. Later can filter by location
         return jobs.sorted { $0.createdAt > $1.createdAt }
+    }
+    
+    private var applicationsCount: Int {
+        applications.count
+    }
+    
+    private var totalEarnings: Int {
+        // Calculate earnings from completed and accepted applications
+        let completedAndAccepted = applications.filter { app in
+            app.applicationStatus == .completed || app.applicationStatus == .accepted
+        }
+        
+        return completedAndAccepted.reduce(0) { total, app in
+            // Extract payment amount from string like "€150" or "150"
+            let paymentString = app.jobPayment
+            let numbers = paymentString.components(separatedBy: CharacterSet.decimalDigits.inverted)
+                .compactMap { Int($0) }
+            let amount = numbers.first ?? 0
+            return total + amount
+        }
+    }
+    
+    private func loadData() async {
+        await loadJobs()
+        await loadApplications()
     }
     
     private func loadJobs() async {
@@ -194,6 +216,21 @@ struct StudentHomeView: View {
                 print("❌ Error loading jobs: \(errorDesc)")
                 print("❌ Full error: \(error)")
             }
+        }
+    }
+    
+    private func loadApplications() async {
+        guard let studentID = appState.uid else {
+            return
+        }
+        
+        do {
+            let fetchedApplications = try await ApplicationManager.shared.fetchApplicationsByStudent(studentID: studentID)
+            await MainActor.run {
+                self.applications = fetchedApplications
+            }
+        } catch {
+            print("Error loading applications: \(error.localizedDescription)")
         }
     }
 }
