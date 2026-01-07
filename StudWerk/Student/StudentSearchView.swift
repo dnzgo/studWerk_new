@@ -11,7 +11,6 @@ struct StudentSearchView: View {
     @State private var searchText = ""
     @State private var selectedCategory = "General"
     @State private var selectedDate = Date()
-    @State private var isRemote = false
     @State private var showingFilters = false
     @State private var sortBy = "Relevance"
     @State private var selectedJob: Job? = nil
@@ -123,7 +122,6 @@ struct StudentSearchView: View {
             SearchFiltersView(
                 selectedCategory: $selectedCategory,
                 selectedDate: $selectedDate,
-                isRemote: $isRemote,
                 categories: categories
             )
         }
@@ -261,7 +259,7 @@ struct SearchJobCard: View {
                 
                 Text(job.dateString)
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(.primary)
             }
             
             HStack {
@@ -318,7 +316,6 @@ struct SearchJobCard: View {
 struct SearchFiltersView: View {
     @Binding var selectedCategory: String
     @Binding var selectedDate: Date
-    @Binding var isRemote: Bool
     let categories: [String]
     
     @Environment(\.dismiss) private var dismiss
@@ -357,26 +354,6 @@ struct SearchFiltersView: View {
                             .background(Color(.systemGray6))
                             .cornerRadius(12)
                     }
-                    
-                    // Remote Work Filter
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Work Type")
-                            .font(.headline)
-                            .fontWeight(.semibold)
-                        
-                        HStack {
-                            Text("Remote Work Only")
-                                .font(.subheadline)
-                            
-                            Spacer()
-                            
-                            Toggle("", isOn: $isRemote)
-                                .toggleStyle(SwitchToggleStyle(tint: .blue))
-                        }
-                        .padding()
-                        .background(Color(.systemGray6))
-                        .cornerRadius(12)
-                    }
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 20)
@@ -397,7 +374,6 @@ struct SearchFiltersView: View {
     private func resetFilters() {
         selectedCategory = "All"
         selectedDate = Date()
-        isRemote = false
     }
 }
 

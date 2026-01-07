@@ -30,15 +30,14 @@ final class JobManager {
     ) async throws -> String {
         // Combine date and times into proper Date objects
         let calendar = Calendar.current
-        let jobDateComponents = calendar.dateComponents([.year, .month, .day], from: date)
         let startComponents = calendar.dateComponents([.hour, .minute], from: startTime)
         let endComponents = calendar.dateComponents([.hour, .minute], from: endTime)
         
-        var startDateTime = calendar.date(bySettingHour: startComponents.hour ?? 0,
+        let startDateTime = calendar.date(bySettingHour: startComponents.hour ?? 0,
                                          minute: startComponents.minute ?? 0,
                                          second: 0,
                                          of: date) ?? date
-        var endDateTime = calendar.date(bySettingHour: endComponents.hour ?? 0,
+        let endDateTime = calendar.date(bySettingHour: endComponents.hour ?? 0,
                                        minute: endComponents.minute ?? 0,
                                        second: 0,
                                        of: date) ?? date

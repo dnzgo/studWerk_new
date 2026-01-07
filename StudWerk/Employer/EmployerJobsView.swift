@@ -322,13 +322,6 @@ struct JobApplicationCard: View {
             }
             
             HStack {
-                Image(systemName: "star.fill")
-                    .foregroundColor(.yellow)
-                    .font(.caption)
-                
-                Text(String(format: "%.1f", application.rating))
-                    .font(.subheadline)
-                    .fontWeight(.medium)
                 
                 Spacer()
                 

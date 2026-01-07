@@ -80,8 +80,8 @@ struct EmployerHomeView: View {
                         }
                         .padding(.horizontal, 20)
                         
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 16) {
+                        ScrollView(.vertical, showsIndicators: false) {
+                            VStack(spacing: 16) {
                                 ForEach(recentApplications, id: \.id) { application in ApplicationSummaryCard(application: application)
                                 }
                             }

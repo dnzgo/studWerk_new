@@ -43,7 +43,6 @@ struct ApplicationSummaryCard: View {
         .padding()
         .background(Color(.systemGray6))
         .cornerRadius(12)
-        .frame(width: 200)
     }
 }
 struct ApplicationSummary : Identifiable {
