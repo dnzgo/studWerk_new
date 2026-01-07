@@ -417,6 +417,28 @@ final class ApplicationManager {
         
         print("✅ ApplicationManager: Withdrew application")
     }
+    
+    /// Delete all applications for a job
+    func deleteApplicationsByJob(jobID: String) async throws {
+        print("🔍 ApplicationManager: Deleting all applications for job \(jobID)")
+        
+        let snapshot = try await applicationsRef
+            .whereField("jobID", isEqualTo: jobID)
+            .getDocuments()
+        
+        let batch = db.batch()
+        var deletedCount = 0
+        
+        for document in snapshot.documents {
+            batch.deleteDocument(document.reference)
+            deletedCount += 1
+        }
+        
+        if deletedCount > 0 {
+            try await batch.commit()
+            print("✅ ApplicationManager: Deleted \(deletedCount) applications for job \(jobID)")
+        }
+    }
 }
 
 enum ApplicationError: LocalizedError {

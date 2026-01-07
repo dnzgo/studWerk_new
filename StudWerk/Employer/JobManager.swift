@@ -329,4 +329,8 @@ final class JobManager {
     func updateJobStatus(jobID: String, status: String) async throws {
         try await jobsRef.document(jobID).updateData(["status": status])
     }
+    
+    func deleteJob(jobID: String) async throws {
+        try await jobsRef.document(jobID).delete()
+    }
 }

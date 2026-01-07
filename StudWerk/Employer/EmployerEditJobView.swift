@@ -24,6 +24,9 @@ struct EmployerEditJobView: View {
     @State private var showingErrorAlert = false
     @State private var errorMessage = ""
     @State private var isUpdating = false
+    @State private var isDeleting = false
+    @State private var showingDeleteConfirmation = false
+    @State private var showingDeleteSuccessAlert = false
     
     let categories = ["General", "Technology", "Retail", "Food Service", "Marketing", "Administration", "Customer Service", "Other"]
     
@@ -209,10 +212,32 @@ struct EmployerEditJobView: View {
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .frame(height: 50)
-                    .background(isFormValid && !isUpdating ? Color.blue : Color.gray)
+                    .background(isFormValid && !isUpdating && !isDeleting ? Color.blue : Color.gray)
                     .cornerRadius(12)
                 }
-                .disabled(!isFormValid || isUpdating)
+                .disabled(!isFormValid || isUpdating || isDeleting)
+                .padding(.horizontal, 20)
+                
+                // Delete Job Button
+                Button(action: {
+                    showingDeleteConfirmation = true
+                }) {
+                    HStack {
+                        if isDeleting {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        }
+                        Text(isDeleting ? "Deleting..." : "Delete Job")
+                            .font(.headline)
+                            .fontWeight(.semibold)
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 50)
+                    .background(isDeleting ? Color.gray : Color.red)
+                    .cornerRadius(12)
+                }
+                .disabled(isUpdating || isDeleting)
                 .padding(.horizontal, 20)
                 .padding(.bottom, 20)
             }
@@ -231,6 +256,21 @@ struct EmployerEditJobView: View {
             Button("OK") { }
         } message: {
             Text(errorMessage)
+        }
+        .alert("Delete Job", isPresented: $showingDeleteConfirmation) {
+            Button("Cancel", role: .cancel) { }
+            Button("Delete", role: .destructive) {
+                deleteJob()
+            }
+        } message: {
+            Text("Are you sure you want to delete this job? This will also delete all related applications. This action cannot be undone.")
+        }
+        .alert("Job Deleted", isPresented: $showingDeleteSuccessAlert) {
+            Button("OK") {
+                dismiss()
+            }
+        } message: {
+            Text("The job and all related applications have been deleted.")
         }
     }
     
@@ -267,6 +307,33 @@ struct EmployerEditJobView: View {
             } catch {
                 await MainActor.run {
                     isUpdating = false
+                    errorMessage = error.localizedDescription
+                    showingErrorAlert = true
+                }
+            }
+        }
+    }
+    
+    private func deleteJob() {
+        isDeleting = true
+        
+        Task {
+            do {
+                // First, delete all applications for this job
+                try await ApplicationManager.shared.deleteApplicationsByJob(jobID: job.id)
+                
+                // Then, delete the job itself
+                try await JobManager.shared.deleteJob(jobID: job.id)
+                
+                await MainActor.run {
+                    isDeleting = false
+                    showingDeleteSuccessAlert = true
+                    // Post notification to reload jobs
+                    NotificationCenter.default.post(name: NSNotification.Name("JobStatusUpdated"), object: nil)
+                }
+            } catch {
+                await MainActor.run {
+                    isDeleting = false
                     errorMessage = error.localizedDescription
                     showingErrorAlert = true
                 }
