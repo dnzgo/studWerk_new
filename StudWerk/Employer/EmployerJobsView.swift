@@ -14,6 +14,7 @@ struct EmployerJobsView: View {
     @State private var selectedTab = 0
     @State private var jobs: [Job] = []
     @State private var applications: [Application] = []
+    @State private var applicationCounts: [String: Int] = [:] // jobID -> count
     @State private var isLoading = false
     @State private var isLoadingApplications = false
     @State private var errorMessage: String? = nil
@@ -134,6 +135,7 @@ struct EmployerJobsView: View {
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ApplicationStatusUpdated"))) { _ in
             Task {
                 await loadApplications()
+                await refreshApplicationCounts()
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("JobStatusUpdated"))) { _ in
@@ -191,6 +193,8 @@ struct EmployerJobsView: View {
             status = .active
         }
         
+        let appCount = applicationCounts[job.id] ?? 0
+        
         return EmployerJob(
             id: job.id,
             position: job.jobTitle,
@@ -198,7 +202,7 @@ struct EmployerJobsView: View {
             pay: job.pay,
             date: dateFormatter.string(from: job.date),
             location: job.location,
-            applications: 0, // TODO: Fetch application count
+            applications: appCount,
             description: job.jobDescription,
             status: status
         )
@@ -222,8 +226,22 @@ struct EmployerJobsView: View {
         do {
             let fetchedJobs = try await JobManager.shared.fetchJobsByEmployer(employerID: employerID)
             print("✅ EmployerJobsView: Fetched \(fetchedJobs.count) jobs")
+            
+            // Load application counts for all jobs
+            var counts: [String: Int] = [:]
+            for job in fetchedJobs {
+                do {
+                    let count = try await ApplicationManager.shared.countApplicationsByJob(jobID: job.id)
+                    counts[job.id] = count
+                } catch {
+                    print("⚠️ Error counting applications for job \(job.id): \(error.localizedDescription)")
+                    counts[job.id] = 0
+                }
+            }
+            
             await MainActor.run {
                 self.jobs = fetchedJobs
+                self.applicationCounts = counts
                 isLoading = false
                 errorMessage = nil
             }
@@ -269,6 +287,23 @@ struct EmployerJobsView: View {
                 print("❌ Error loading applications: \(errorDesc)")
                 print("❌ Full error: \(error)")
             }
+        }
+    }
+    
+    private func refreshApplicationCounts() async {
+        var counts: [String: Int] = [:]
+        for job in jobs {
+            do {
+                let count = try await ApplicationManager.shared.countApplicationsByJob(jobID: job.id)
+                counts[job.id] = count
+            } catch {
+                print("⚠️ Error counting applications for job \(job.id): \(error.localizedDescription)")
+                counts[job.id] = 0
+            }
+        }
+        
+        await MainActor.run {
+            self.applicationCounts = counts
         }
     }
 }

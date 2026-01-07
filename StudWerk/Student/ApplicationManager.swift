@@ -439,6 +439,15 @@ final class ApplicationManager {
             print("✅ ApplicationManager: Deleted \(deletedCount) applications for job \(jobID)")
         }
     }
+    
+    /// Count applications for a job
+    func countApplicationsByJob(jobID: String) async throws -> Int {
+        let snapshot = try await applicationsRef
+            .whereField("jobID", isEqualTo: jobID)
+            .getDocuments()
+        
+        return snapshot.documents.count
+    }
 }
 
 enum ApplicationError: LocalizedError {
