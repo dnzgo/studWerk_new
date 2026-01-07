@@ -35,25 +35,26 @@ struct StudentHomeView: View {
                     
                     // Quick Stats
                     HStack(spacing: 16) {
-                        QuickStatCard(
-                            title: "Available Jobs",
-                            value: "\(jobs.count)",
-                            icon: "briefcase.fill",
-                            color: .blue
+                        StatCard(
+                            title: "Completed..",
+                            value: "\(completedJobsCount)",
+                            color: .blue,
+                            icon: "briefcase.fill"
+                            
                         )
                         
-                        QuickStatCard(
+                        StatCard(
                             title: "Applications",
                             value: "\(applicationsCount)",
-                            icon: "doc.text.fill",
-                            color: .green
+                            color: .green,
+                            icon: "doc.text.fill"
                         )
                         
-                        QuickStatCard(
+                        StatCard(
                             title: "Earnings",
                             value: "€\(totalEarnings)",
-                            icon: "eurosign.circle.fill",
-                            color: .orange
+                            color: .orange,
+                            icon: "eurosign.circle.fill"
                         )
                     }
                     .padding(.horizontal, 20)
@@ -164,7 +165,11 @@ struct StudentHomeView: View {
     }
     
     private var applicationsCount: Int {
-        applications.count
+        applications.filter { $0.applicationStatus == .pending }.count
+    }
+    
+    private var completedJobsCount: Int {
+        applications.filter { $0.applicationStatus == .completed }.count
     }
     
     private var totalEarnings: Int {

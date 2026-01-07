@@ -37,3 +37,4 @@ struct StatCard: View {
         .cornerRadius(12)
     }
 }
+
