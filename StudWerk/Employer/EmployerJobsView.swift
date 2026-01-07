@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Combine
 import FirebaseFirestore
 
 struct EmployerJobsView: View {
@@ -29,6 +30,10 @@ struct EmployerJobsView: View {
                 .pickerStyle(SegmentedPickerStyle())
                 .padding(.horizontal, 20)
                 .padding(.top, 10)
+                .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("NavigateToApplications"))) { _ in
+                    // Switch to Applications tab
+                    selectedTab = 1
+                }
                 
                 // Content
                 ScrollView {
@@ -128,6 +133,12 @@ struct EmployerJobsView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ApplicationStatusUpdated"))) { _ in
             Task {
+                await loadApplications()
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("JobStatusUpdated"))) { _ in
+            Task {
+                await loadJobs()
                 await loadApplications()
             }
         }
@@ -241,8 +252,14 @@ struct EmployerJobsView: View {
         do {
             let fetchedApplications = try await ApplicationManager.shared.fetchApplicationsByEmployer(employerID: employerID)
             print("✅ EmployerJobsView: Fetched \(fetchedApplications.count) applications")
+            
+            // Filter out applications from completed jobs
+            let completedJobIDs = Set(jobs.filter { $0.status == "completed" || $0.status == "closed" }.map { $0.id })
+            let filteredApplications = fetchedApplications.filter { !completedJobIDs.contains($0.jobID) }
+            
+            print("✅ EmployerJobsView: Filtered to \(filteredApplications.count) applications (excluding completed jobs)")
             await MainActor.run {
-                self.applications = fetchedApplications
+                self.applications = filteredApplications
                 isLoadingApplications = false
             }
         } catch {
@@ -261,6 +278,7 @@ struct EmployerJobCard: View {
     let originalJob: Job?
     @EnvironmentObject var appState: AppState
     @State private var showingJobApplications = false
+    @State private var showingEditJob = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -330,7 +348,7 @@ struct EmployerJobCard: View {
             HStack {
                 if job.status == .active {
                     Button("Edit Job") {
-                        // Handle edit
+                        showingEditJob = true
                     }
                     .font(.subheadline)
                     .fontWeight(.semibold)
@@ -348,30 +366,22 @@ struct EmployerJobCard: View {
                     .padding(.vertical, 8)
                     .background(Color.blue)
                     .cornerRadius(6)
-                    .sheet(isPresented: $showingJobApplications) {
-                        if let originalJob = originalJob {
-                            NavigationView {
-                                JobApplicationsView(job: originalJob)
-                                    .environmentObject(appState)
-                            }
-                        }
+                }
+            }
+            .sheet(isPresented: $showingJobApplications) {
+                if let originalJob = originalJob {
+                    NavigationView {
+                        JobApplicationsView(job: originalJob)
+                            .environmentObject(appState)
                     }
-                } else {
-                    Button("View Details") {
-                        // Handle view details
+                }
+            }
+            .sheet(isPresented: $showingEditJob) {
+                if let originalJob = originalJob {
+                    NavigationView {
+                        EmployerEditJobView(job: originalJob)
+                            .environmentObject(appState)
                     }
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.blue)
-                    
-                    Spacer()
-                    
-                    Button("Repost") {
-                        // Handle repost
-                    }
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.green)
                 }
             }
         }
@@ -385,7 +395,9 @@ struct EmployerApplicationCard: View {
     let application: Application
     @State private var studentName = ""
     @State private var studentPhone = ""
+    @State private var studentEmail = ""
     @State private var isLoadingStudent = false
+    @State private var showingStudentContact = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -438,8 +450,8 @@ struct EmployerApplicationCard: View {
             }
             
             HStack {
-                Button("View Profile") {
-                    // Handle view profile
+                Button("Contact") {
+                    showingStudentContact = true
                 }
                 .font(.subheadline)
                 .fontWeight(.semibold)
@@ -471,13 +483,28 @@ struct EmployerApplicationCard: View {
                         .background(Color.green)
                         .cornerRadius(6)
                     }
-                } else {
-                    Button("Contact") {
-                        // Handle contact
+                } else if application.applicationStatus == .accepted {
+                    Button("Complete") {
+                        Task {
+                            await completeJob()
+                        }
                     }
                     .font(.subheadline)
                     .fontWeight(.semibold)
-                    .foregroundColor(.blue)
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color.blue)
+                    .cornerRadius(6)
+                }
+            }
+            .sheet(isPresented: $showingStudentContact) {
+                NavigationView {
+                    StudentContactView(
+                        studentName: studentName,
+                        email: studentEmail,
+                        phone: studentPhone
+                    )
                 }
             }
         }
@@ -500,6 +527,8 @@ struct EmployerApplicationCard: View {
         
         do {
             let db = Firestore.firestore()
+            
+            // Load student info from students collection
             let studentDoc = try await db.collection("students").document(application.studentID).getDocument()
             
             if let data = studentDoc.data() {
@@ -509,6 +538,17 @@ struct EmployerApplicationCard: View {
                     }
                     if let phone = data["phone"] as? String {
                         studentPhone = phone
+                    }
+                }
+            }
+            
+            // Load email from users collection
+            let userDoc = try await db.collection("users").document(application.studentID).getDocument()
+            
+            if let userData = userDoc.data() {
+                await MainActor.run {
+                    if let email = userData["email"] as? String {
+                        studentEmail = email
                     }
                     isLoadingStudent = false
                 }
@@ -533,6 +573,18 @@ struct EmployerApplicationCard: View {
             NotificationCenter.default.post(name: NSNotification.Name("ApplicationStatusUpdated"), object: nil)
         } catch {
             print("❌ Error updating application status: \(error.localizedDescription)")
+        }
+    }
+    
+    private func completeJob() async {
+        do {
+            try await ApplicationManager.shared.completeJob(applicationID: application.id)
+            print("✅ Completed job for application \(application.id)")
+            // Post notification to reload applications and jobs
+            NotificationCenter.default.post(name: NSNotification.Name("ApplicationStatusUpdated"), object: nil)
+            NotificationCenter.default.post(name: NSNotification.Name("JobStatusUpdated"), object: nil)
+        } catch {
+            print("❌ Error completing job: \(error.localizedDescription)")
         }
     }
 }

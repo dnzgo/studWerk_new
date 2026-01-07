@@ -11,6 +11,7 @@ import FirebaseFirestore
 struct JobApplicationsView: View {
     let job: Job
     @EnvironmentObject var appState: AppState
+    @Environment(\.dismiss) var dismiss
     @State private var applications: [Application] = []
     @State private var isLoading = false
     @State private var errorMessage: String? = nil
@@ -46,6 +47,13 @@ struct JobApplicationsView: View {
         }
         .navigationTitle("Applications")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button("Done") {
+                    dismiss()
+                }
+            }
+        }
         .task {
             await loadApplications()
         }

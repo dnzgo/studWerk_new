@@ -9,20 +9,14 @@ import SwiftUI
 import FirebaseFirestore
 
 struct ApplicationSummaryCard: View {
-    let application: ApplicationSummary
-    let studentID: String? // Optional: studentID to load student name
+    let application: Application
     @State private var loadedStudentName: String? = nil
-    
-    init(application: ApplicationSummary, studentID: String? = nil) {
-        self.application = application
-        self.studentID = studentID
-    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(loadedStudentName ?? application.studentName)
+                    Text(loadedStudentName ?? "Loading...")
                         .font(.subheadline)
                         .fontWeight(.semibold)
 
@@ -33,28 +27,18 @@ struct ApplicationSummaryCard: View {
 
                 Spacer()
 
-                Text(application.timeAgo)
+                Text(application.appliedDate)
                     .font(.caption)
                     .foregroundColor(.secondary)
-            }
-
-            HStack {
-
-                Button("Review") {
-                    // Handle review
-                }
-                .font(.caption)
-                .fontWeight(.semibold)
-                .foregroundColor(.blue)
             }
         }
         .padding()
         .background(Color(.systemGray6))
         .cornerRadius(12)
         .onAppear {
-            if let studentID = studentID, loadedStudentName == nil {
+            if loadedStudentName == nil {
                 Task {
-                    await loadStudentName(studentID: studentID)
+                    await loadStudentName(studentID: application.studentID)
                 }
             }
         }
@@ -66,7 +50,7 @@ struct ApplicationSummaryCard: View {
             let studentDoc = try await db.collection("students").document(studentID).getDocument()
             
             if let data = studentDoc.data(),
-               let name = data["fullName"] as? String {
+               let name = data["name"] as? String {
                 await MainActor.run {
                     loadedStudentName = name
                 }
@@ -84,11 +68,5 @@ struct ApplicationSummaryCard: View {
             print("Error loading student name: \(error.localizedDescription)")
         }
     }
-}
-struct ApplicationSummary : Identifiable {
-    var id: UUID = UUID()
-    var studentName: String
-    var position: String
-    var timeAgo: String
 }
 

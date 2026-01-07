@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Combine
 
 struct MainTabView: View {
     let userType: UserType
@@ -75,6 +76,10 @@ struct MainTabView: View {
                     }
                     .tag(3)
             }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("NavigateToApplications"))) { _ in
+            // Switch to My Jobs tab (index 2)
+            selectedTab = 2
         }
     }
 }

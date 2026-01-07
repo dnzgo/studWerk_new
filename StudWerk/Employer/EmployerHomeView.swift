@@ -74,7 +74,11 @@ struct EmployerHomeView: View {
                             Spacer()
                             
                             Button("View All") {
-                                // handle navigation to applications
+                                // Navigate to My Jobs tab and switch to Applications
+                                NotificationCenter.default.post(
+                                    name: NSNotification.Name("NavigateToApplications"),
+                                    object: nil
+                                )
                             }
                             .font(.subheadline)
                             .foregroundColor(.blue)
@@ -98,10 +102,9 @@ struct EmployerHomeView: View {
                                     }
                                     .padding(.top, 40)
                                 } else {
-                                    ForEach(recentApplications, id: \.0.id) { applicationTuple in
+                                    ForEach(recentApplications, id: \.id) { application in
                                         ApplicationSummaryCard(
-                                            application: applicationTuple.0,
-                                            studentID: applicationTuple.1
+                                            application: application
                                         )
                                     }
                                 }
@@ -109,8 +112,11 @@ struct EmployerHomeView: View {
                             .padding(.horizontal, 20)
                         }
                     }
+                    
+                    Spacer()
                 }
             }
+            
         }
         .task {
             await loadData()
@@ -125,37 +131,34 @@ struct EmployerHomeView: View {
     }
     
     private var applicationsCount: Int {
-        applications.count
+        applications.filter { $0.applicationStatus == .pending }.count
     }
     
     private var hiredStudentsCount: Int {
         applications.filter { $0.applicationStatus == .accepted || $0.applicationStatus == .completed }.count
     }
     
-    private var recentApplications: [(ApplicationSummary, String)] {
-        // Get the 5 most recent applications with their studentIDs
-        let recent = applications
+    private var recentApplications: [Application] {
+        // Get the 5 most recent applications
+        return Array(applications
             .sorted { $0.appliedAt > $1.appliedAt }
-            .prefix(5)
-        
-        return recent.map { app in
-            (
-                ApplicationSummary(
-                    id: UUID(),
-                    studentName: "Student", // Will be loaded asynchronously
-                    position: app.position,
-                    timeAgo: app.appliedDate
-                ),
-                app.studentID
-            )
-        }
+            .prefix(5))
     }
     
     private var totalSpend: String {
-        let total = jobs
-            .filter { $0.status == "completed" || $0.status == "closed" }
-            .compactMap { Double($0.payment) }
-            .reduce(0, +)
+        // Calculate total spend from completed applications only
+        let completed = applications.filter { app in
+            app.applicationStatus == .completed
+        }
+        
+        let total = completed.reduce(0) { total, app in
+            // Extract payment amount from string like "€150" or "150"
+            let paymentString = app.jobPayment
+            let numbers = paymentString.components(separatedBy: CharacterSet.decimalDigits.inverted)
+                .compactMap { Double($0) }
+            let amount = numbers.first ?? 0
+            return total + amount
+        }
         
         if total >= 1000 {
             return String(format: "%.1fK", total / 1000)

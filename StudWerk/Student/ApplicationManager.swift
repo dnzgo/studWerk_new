@@ -305,6 +305,108 @@ final class ApplicationManager {
         ])
         
         print("✅ ApplicationManager: Updated application status")
+        
+        // If accepting an application, reject all other applications for the same job
+        if status == .accepted {
+            let application = try await fetchApplication(byID: applicationID)
+            if let application = application {
+                try await rejectOtherApplicationsForJob(jobID: application.jobID, acceptedApplicationID: applicationID)
+            }
+        }
+    }
+    
+    /// Fetch a single application by ID
+    private func fetchApplication(byID applicationID: String) async throws -> Application? {
+        let document = try await applicationsRef.document(applicationID).getDocument()
+        
+        guard let data = document.data(),
+              document.exists else {
+            return nil
+        }
+        
+        guard
+            let studentID = data["studentID"] as? String,
+            let jobID = data["jobID"] as? String,
+            let employerID = data["employerID"] as? String,
+            let status = data["status"] as? String,
+            let jobTitle = data["jobTitle"] as? String,
+            let jobPayment = data["jobPayment"] as? String,
+            let jobLocation = data["jobLocation"] as? String,
+            let jobDateTimestamp = data["jobDate"] as? Timestamp,
+            let jobStartTimeTimestamp = data["jobStartTime"] as? Timestamp,
+            let jobEndTimeTimestamp = data["jobEndTime"] as? Timestamp,
+            let jobCategory = data["jobCategory"] as? String
+        else {
+            return nil
+        }
+        
+        let appliedAt: Date
+        if let appliedAtTimestamp = data["appliedAt"] as? Timestamp {
+            appliedAt = appliedAtTimestamp.dateValue()
+        } else {
+            appliedAt = Date()
+        }
+        
+        return Application(
+            id: document.documentID,
+            studentID: studentID,
+            jobID: jobID,
+            employerID: employerID,
+            status: status,
+            appliedAt: appliedAt,
+            jobTitle: jobTitle,
+            jobPayment: jobPayment,
+            jobLocation: jobLocation,
+            jobDate: jobDateTimestamp.dateValue(),
+            jobStartTime: jobStartTimeTimestamp.dateValue(),
+            jobEndTime: jobEndTimeTimestamp.dateValue(),
+            jobCategory: jobCategory
+        )
+    }
+    
+    /// Reject all other applications for a job when one is accepted
+    private func rejectOtherApplicationsForJob(jobID: String, acceptedApplicationID: String) async throws {
+        print("🔍 ApplicationManager: Rejecting other applications for job \(jobID)")
+        
+        let snapshot = try await applicationsRef
+            .whereField("jobID", isEqualTo: jobID)
+            .whereField("status", isEqualTo: ApplicationStatus.pending.rawValue)
+            .getDocuments()
+        
+        let batch = db.batch()
+        var rejectedCount = 0
+        
+        for document in snapshot.documents {
+            if document.documentID != acceptedApplicationID {
+                batch.updateData(["status": ApplicationStatus.rejected.rawValue], forDocument: document.reference)
+                rejectedCount += 1
+            }
+        }
+        
+        if rejectedCount > 0 {
+            try await batch.commit()
+            print("✅ ApplicationManager: Rejected \(rejectedCount) other applications")
+        }
+    }
+    
+    /// Complete a job (mark application as completed and job as completed)
+    func completeJob(applicationID: String) async throws {
+        print("🔍 ApplicationManager: Completing job for application \(applicationID)")
+        
+        // Get the application to find the jobID
+        guard let application = try await fetchApplication(byID: applicationID) else {
+            throw NSError(domain: "ApplicationManager", code: 404, userInfo: [NSLocalizedDescriptionKey: "Application not found"])
+        }
+        
+        // Update application status to completed
+        try await applicationsRef.document(applicationID).updateData([
+            "status": ApplicationStatus.completed.rawValue
+        ])
+        
+        // Update job status to completed
+        try await JobManager.shared.updateJobStatus(jobID: application.jobID, status: "completed")
+        
+        print("✅ ApplicationManager: Completed job and application")
     }
     
     /// Withdraw an application (delete it)

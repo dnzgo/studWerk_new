@@ -285,4 +285,48 @@ final class JobManager {
         
         return companyName
     }
+    
+    func updateJob(
+        jobID: String,
+        jobTitle: String,
+        jobDescription: String,
+        payment: String,
+        date: Date,
+        startTime: Date,
+        endTime: Date,
+        category: String,
+        location: String
+    ) async throws {
+        // Combine date and times into proper Date objects
+        let calendar = Calendar.current
+        let startComponents = calendar.dateComponents([.hour, .minute], from: startTime)
+        let endComponents = calendar.dateComponents([.hour, .minute], from: endTime)
+        
+        let startDateTime = calendar.date(bySettingHour: startComponents.hour ?? 0,
+                                         minute: startComponents.minute ?? 0,
+                                         second: 0,
+                                         of: date) ?? date
+        let endDateTime = calendar.date(bySettingHour: endComponents.hour ?? 0,
+                                       minute: endComponents.minute ?? 0,
+                                       second: 0,
+                                       of: date) ?? date
+        
+        // Update job document
+        let jobData: [String: Any] = [
+            "jobTitle": jobTitle,
+            "jobDescription": jobDescription,
+            "payment": payment,
+            "date": Timestamp(date: date),
+            "startTime": Timestamp(date: startDateTime),
+            "endTime": Timestamp(date: endDateTime),
+            "category": category,
+            "location": location
+        ]
+        
+        try await jobsRef.document(jobID).updateData(jobData)
+    }
+    
+    func updateJobStatus(jobID: String, status: String) async throws {
+        try await jobsRef.document(jobID).updateData(["status": status])
+    }
 }

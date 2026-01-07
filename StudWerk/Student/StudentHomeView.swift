@@ -66,12 +66,6 @@ struct StudentHomeView: View {
                                 .fontWeight(.semibold)
                             
                             Spacer()
-                            
-                            Button("See All") {
-                                // Handle see all
-                            }
-                            .font(.subheadline)
-                            .foregroundColor(.blue)
                         }
                         .padding(.horizontal, 20)
                         
@@ -106,12 +100,6 @@ struct StudentHomeView: View {
                                 .fontWeight(.semibold)
                             
                             Spacer()
-                            
-                            Button("View All") {
-                                // Handle navigate to nearby jobs
-                            }
-                            .font(.subheadline)
-                            .foregroundColor(.blue)
                         }
                         .padding(.horizontal, 20)
                         
@@ -159,13 +147,20 @@ struct StudentHomeView: View {
     }
     
     private var featuredJobs: [Job] {
-        // Featured jobs are the most recent ones
-        return Array(jobs.sorted { $0.createdAt > $1.createdAt }.prefix(3))
+        // Featured jobs are the most recent ones that the student hasn't applied to
+        let appliedJobIDs = Set(applications.map { $0.jobID })
+        return Array(jobs
+            .filter { !appliedJobIDs.contains($0.id) }
+            .sorted { $0.createdAt > $1.createdAt }
+            .prefix(3))
     }
     
     private var nearbyJobs: [Job] {
-        // For now, return all jobs. Later can filter by location
-        return jobs.sorted { $0.createdAt > $1.createdAt }
+        // Return jobs that the student hasn't applied to, sorted by creation date
+        let appliedJobIDs = Set(applications.map { $0.jobID })
+        return jobs
+            .filter { !appliedJobIDs.contains($0.id) }
+            .sorted { $0.createdAt > $1.createdAt }
     }
     
     private var applicationsCount: Int {
@@ -173,12 +168,12 @@ struct StudentHomeView: View {
     }
     
     private var totalEarnings: Int {
-        // Calculate earnings from completed and accepted applications
-        let completedAndAccepted = applications.filter { app in
-            app.applicationStatus == .completed || app.applicationStatus == .accepted
+        // Calculate earnings from completed jobs only
+        let completed = applications.filter { app in
+            app.applicationStatus == .completed
         }
         
-        return completedAndAccepted.reduce(0) { total, app in
+        return completed.reduce(0) { total, app in
             // Extract payment amount from string like "€150" or "150"
             let paymentString = app.jobPayment
             let numbers = paymentString.components(separatedBy: CharacterSet.decimalDigits.inverted)

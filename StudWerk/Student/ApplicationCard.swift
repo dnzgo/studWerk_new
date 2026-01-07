@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import FirebaseFirestore
 
 struct ApplicationCard: View {
     let application: Application
@@ -16,7 +17,12 @@ struct ApplicationCard: View {
     @State private var showingErrorAlert = false
     @State private var errorMessage = ""
     @State private var showingJobDetail = false
+    @State private var showingEmployerContact = false
     @State private var job: Job? = nil
+    @State private var isLoadingJob = false
+    @State private var employerEmail = ""
+    @State private var employerPhone = ""
+    @State private var employerAddress = ""
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -86,7 +92,7 @@ struct ApplicationCard: View {
             } else if application.applicationStatus == .accepted {
                 HStack {
                     Button("Contact Employer") {
-                        // Handle contact
+                        showingEmployerContact = true
                     }
                     .font(.subheadline)
                     .fontWeight(.semibold)
@@ -94,12 +100,22 @@ struct ApplicationCard: View {
                     
                     Spacer()
                     
-                    Button("View Contract") {
-                        // Handle view contract
+                    Button(action: {
+                        Task {
+                            await loadJobAndShowDetail()
+                        }
+                    }) {
+                        if isLoadingJob {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .green))
+                        } else {
+                            Text("View Details")
+                        }
                     }
                     .font(.subheadline)
                     .fontWeight(.semibold)
                     .foregroundColor(.green)
+                    .disabled(isLoadingJob)
                 }
             } else {
                 HStack {
@@ -124,11 +140,33 @@ struct ApplicationCard: View {
                 await loadCompanyName()
             }
         }
+        .sheet(isPresented: $showingEmployerContact) {
+            NavigationView {
+                EmployerContactView(
+                    companyName: companyName,
+                    email: employerEmail,
+                    phone: employerPhone,
+                    address: employerAddress
+                )
+            }
+        }
         .sheet(isPresented: $showingJobDetail) {
-            if let job = job {
-                NavigationView {
-                    JobDetailView(job: job)
-                        .environmentObject(appState)
+            Group {
+                if let job = job {
+                    NavigationView {
+                        JobDetailView(job: job)
+                            .environmentObject(appState)
+                    }
+                } else {
+                    NavigationView {
+                        VStack {
+                            ProgressView()
+                                .padding()
+                            Text("Loading job details...")
+                                .foregroundColor(.secondary)
+                        }
+                        .navigationTitle("Job Details")
+                    }
                 }
             }
         }
@@ -156,26 +194,69 @@ struct ApplicationCard: View {
                     companyName = name
                 }
             }
+            // Also load employer contact info
+            await loadEmployerContact()
         } catch {
             print("Error loading company name: \(error.localizedDescription)")
         }
     }
     
+    private func loadEmployerContact() async {
+        do {
+            let db = Firestore.firestore()
+            
+            // Get phone and address from employers collection
+            let employerDoc = try await db.collection("employers").document(application.employerID).getDocument()
+            if let employerData = employerDoc.data() {
+                await MainActor.run {
+                    employerPhone = employerData["phone"] as? String ?? ""
+                    employerAddress = employerData["address"] as? String ?? ""
+                }
+            }
+            
+            // Get email from users collection
+            let userDoc = try await db.collection("users").document(application.employerID).getDocument()
+            if let userData = userDoc.data() {
+                await MainActor.run {
+                    employerEmail = userData["email"] as? String ?? ""
+                }
+            }
+            
+            print("📧 Loaded employer contact - Email: \(employerEmail), Phone: \(employerPhone), Address: \(employerAddress)")
+        } catch {
+            print("Error loading employer contact: \(error.localizedDescription)")
+        }
+    }
+    
     private func loadJobAndShowDetail() async {
+        print("🔍 ApplicationCard: Loading job details for jobID: \(application.jobID)")
+        
+        await MainActor.run {
+            isLoadingJob = true
+            job = nil
+            showingJobDetail = false
+        }
+        
         do {
             if let fetchedJob = try await JobManager.shared.fetchJob(byID: application.jobID) {
+                print("✅ ApplicationCard: Successfully loaded job: \(fetchedJob.jobTitle)")
                 await MainActor.run {
                     job = fetchedJob
+                    isLoadingJob = false
                     showingJobDetail = true
                 }
             } else {
+                print("❌ ApplicationCard: Job not found for ID: \(application.jobID)")
                 await MainActor.run {
+                    isLoadingJob = false
                     errorMessage = "Job not found"
                     showingErrorAlert = true
                 }
             }
         } catch {
+            print("❌ ApplicationCard: Error loading job: \(error.localizedDescription)")
             await MainActor.run {
+                isLoadingJob = false
                 errorMessage = "Failed to load job details: \(error.localizedDescription)"
                 showingErrorAlert = true
             }
