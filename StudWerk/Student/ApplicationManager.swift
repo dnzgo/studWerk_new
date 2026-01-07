@@ -17,7 +17,7 @@ final class ApplicationManager {
     private var applicationsRef: CollectionReference { db.collection("applications") }
     private var jobsRef: CollectionReference { db.collection("jobs") }
     
-    /// Check if a student has already applied to a job
+    // Check if a student has already applied to a job
     func hasAppliedToJob(jobID: String, studentID: String) async throws -> Bool {
         let query = applicationsRef
             .whereField("jobID", isEqualTo: jobID)
@@ -28,7 +28,7 @@ final class ApplicationManager {
         return !snapshot.documents.isEmpty
     }
     
-    /// Apply to a job (prevents duplicates)
+    // Apply to a job (prevents duplicates)
     func applyToJob(jobID: String, studentID: String) async throws -> String {
         print("🔍 ApplicationManager: Applying to job \(jobID) for student \(studentID)")
         
@@ -65,13 +65,13 @@ final class ApplicationManager {
         ]
         
         let docRef = try await applicationsRef.addDocument(data: applicationData)
-        print("✅ ApplicationManager: Created application \(docRef.documentID)")
+        print("ApplicationManager: Created application \(docRef.documentID)")
         return docRef.documentID
     }
     
-    /// Fetch applications by student ID
+    // Fetch applications by student ID
     func fetchApplicationsByStudent(studentID: String, status: ApplicationStatus? = nil) async throws -> [Application] {
-        print("🔍 ApplicationManager: Fetching applications for student \(studentID), status: \(status?.rawValue ?? "any")")
+        print("ApplicationManager: Fetching applications for student \(studentID), status: \(status?.rawValue ?? "any")")
         
         var query: Query = applicationsRef.whereField("studentID", isEqualTo: studentID)
         
@@ -87,7 +87,7 @@ final class ApplicationManager {
             snapshot = try await query.getDocuments()
         } catch {
             // If ordering fails (likely due to missing composite index), fetch without orderBy
-            print("⚠️ ApplicationManager: OrderBy failed, fetching without order: \(error.localizedDescription)")
+            print("ApplicationManager: OrderBy failed, fetching without order: \(error.localizedDescription)")
             var fallbackQuery: Query = applicationsRef.whereField("studentID", isEqualTo: studentID)
             if let status = status {
                 fallbackQuery = fallbackQuery.whereField("status", isEqualTo: status.rawValue)
@@ -95,7 +95,7 @@ final class ApplicationManager {
             snapshot = try await fallbackQuery.getDocuments()
         }
         
-        print("📊 ApplicationManager: Found \(snapshot.documents.count) application documents")
+        print("ApplicationManager: Found \(snapshot.documents.count) application documents")
         
         var applications = try snapshot.documents.compactMap { document -> Application? in
             let data = document.data()
@@ -144,13 +144,13 @@ final class ApplicationManager {
         // Sort by appliedAt descending (newest first) if we fetched without orderBy
         applications.sort { $0.appliedAt > $1.appliedAt }
         
-        print("✅ ApplicationManager: Returning \(applications.count) applications")
+        print("ApplicationManager: Returning \(applications.count) applications")
         return applications
     }
     
-    /// Fetch applications by job ID
+    // Fetch applications by job ID
     func fetchApplicationsByJob(jobID: String) async throws -> [Application] {
-        print("🔍 ApplicationManager: Fetching applications for job \(jobID)")
+        print("ApplicationManager: Fetching applications for job \(jobID)")
         
         // Try to order by appliedAt, but if it fails (index issue), we'll sort in memory
         var snapshot: QuerySnapshot
@@ -161,12 +161,12 @@ final class ApplicationManager {
             snapshot = try await query.getDocuments()
         } catch {
             // If ordering fails (likely due to missing composite index), fetch without orderBy
-            print("⚠️ ApplicationManager: OrderBy failed, fetching without order: \(error.localizedDescription)")
+            print("ApplicationManager: OrderBy failed, fetching without order: \(error.localizedDescription)")
             let fallbackQuery = applicationsRef.whereField("jobID", isEqualTo: jobID)
             snapshot = try await fallbackQuery.getDocuments()
         }
         
-        print("📊 ApplicationManager: Found \(snapshot.documents.count) application documents for job \(jobID)")
+        print("ApplicationManager: Found \(snapshot.documents.count) application documents for job \(jobID)")
         
         var applications = try snapshot.documents.compactMap { document -> Application? in
             let data = document.data()
@@ -214,13 +214,13 @@ final class ApplicationManager {
         // Sort by appliedAt descending (newest first) if we fetched without orderBy
         applications.sort { $0.appliedAt > $1.appliedAt }
         
-        print("✅ ApplicationManager: Returning \(applications.count) applications for job \(jobID)")
+        print("ApplicationManager: Returning \(applications.count) applications for job \(jobID)")
         return applications
     }
     
-    /// Fetch applications by employer ID
+    // Fetch applications by employer ID
     func fetchApplicationsByEmployer(employerID: String, status: ApplicationStatus? = nil) async throws -> [Application] {
-        print("🔍 ApplicationManager: Fetching applications for employer \(employerID), status: \(status?.rawValue ?? "any")")
+        print("ApplicationManager: Fetching applications for employer \(employerID), status: \(status?.rawValue ?? "any")")
         
         var query: Query = applicationsRef.whereField("employerID", isEqualTo: employerID)
         
@@ -236,7 +236,7 @@ final class ApplicationManager {
             snapshot = try await query.getDocuments()
         } catch {
             // If ordering fails (likely due to missing composite index), fetch without orderBy
-            print("⚠️ ApplicationManager: OrderBy failed, fetching without order: \(error.localizedDescription)")
+            print("ApplicationManager: OrderBy failed, fetching without order: \(error.localizedDescription)")
             var fallbackQuery: Query = applicationsRef.whereField("employerID", isEqualTo: employerID)
             if let status = status {
                 fallbackQuery = fallbackQuery.whereField("status", isEqualTo: status.rawValue)
@@ -244,7 +244,7 @@ final class ApplicationManager {
             snapshot = try await fallbackQuery.getDocuments()
         }
         
-        print("📊 ApplicationManager: Found \(snapshot.documents.count) application documents")
+        print("ApplicationManager: Found \(snapshot.documents.count) application documents")
         
         var applications = try snapshot.documents.compactMap { document -> Application? in
             let data = document.data()
@@ -292,19 +292,19 @@ final class ApplicationManager {
         // Sort by appliedAt descending (newest first) if we fetched without orderBy
         applications.sort { $0.appliedAt > $1.appliedAt }
         
-        print("✅ ApplicationManager: Returning \(applications.count) applications")
+        print("ApplicationManager: Returning \(applications.count) applications")
         return applications
     }
     
-    /// Update application status
+    // Update application status
     func updateApplicationStatus(applicationID: String, status: ApplicationStatus) async throws {
-        print("🔍 ApplicationManager: Updating application \(applicationID) to status \(status.rawValue)")
+        print("ApplicationManager: Updating application \(applicationID) to status \(status.rawValue)")
         
         try await applicationsRef.document(applicationID).updateData([
             "status": status.rawValue
         ])
         
-        print("✅ ApplicationManager: Updated application status")
+        print("ApplicationManager: Updated application status")
         
         // If accepting an application, reject all other applications for the same job
         if status == .accepted {
@@ -315,7 +315,7 @@ final class ApplicationManager {
         }
     }
     
-    /// Fetch a single application by ID
+    // Fetch a single application by ID
     private func fetchApplication(byID applicationID: String) async throws -> Application? {
         let document = try await applicationsRef.document(applicationID).getDocument()
         
@@ -364,9 +364,9 @@ final class ApplicationManager {
         )
     }
     
-    /// Reject all other applications for a job when one is accepted
+    // Reject all other applications for a job when one is accepted
     private func rejectOtherApplicationsForJob(jobID: String, acceptedApplicationID: String) async throws {
-        print("🔍 ApplicationManager: Rejecting other applications for job \(jobID)")
+        print("ApplicationManager: Rejecting other applications for job \(jobID)")
         
         let snapshot = try await applicationsRef
             .whereField("jobID", isEqualTo: jobID)
@@ -385,13 +385,13 @@ final class ApplicationManager {
         
         if rejectedCount > 0 {
             try await batch.commit()
-            print("✅ ApplicationManager: Rejected \(rejectedCount) other applications")
+            print("ApplicationManager: Rejected \(rejectedCount) other applications")
         }
     }
     
-    /// Complete a job (mark application as completed and job as completed)
+    // Complete a job (mark application as completed and job as completed)
     func completeJob(applicationID: String) async throws {
-        print("🔍 ApplicationManager: Completing job for application \(applicationID)")
+        print("ApplicationManager: Completing job for application \(applicationID)")
         
         // Get the application to find the jobID
         guard let application = try await fetchApplication(byID: applicationID) else {
@@ -406,21 +406,21 @@ final class ApplicationManager {
         // Update job status to completed
         try await JobManager.shared.updateJobStatus(jobID: application.jobID, status: "completed")
         
-        print("✅ ApplicationManager: Completed job and application")
+        print("ApplicationManager: Completed job and application")
     }
     
-    /// Withdraw an application (delete it)
+    // Withdraw an application (delete it)
     func withdrawApplication(applicationID: String) async throws {
-        print("🔍 ApplicationManager: Withdrawing application \(applicationID)")
+        print("ApplicationManager: Withdrawing application \(applicationID)")
         
         try await applicationsRef.document(applicationID).delete()
         
-        print("✅ ApplicationManager: Withdrew application")
+        print("ApplicationManager: Withdrew application")
     }
     
-    /// Delete all applications for a job
+    // Delete all applications for a job
     func deleteApplicationsByJob(jobID: String) async throws {
-        print("🔍 ApplicationManager: Deleting all applications for job \(jobID)")
+        print("ApplicationManager: Deleting all applications for job \(jobID)")
         
         let snapshot = try await applicationsRef
             .whereField("jobID", isEqualTo: jobID)
@@ -436,11 +436,11 @@ final class ApplicationManager {
         
         if deletedCount > 0 {
             try await batch.commit()
-            print("✅ ApplicationManager: Deleted \(deletedCount) applications for job \(jobID)")
+            print("ApplicationManager: Deleted \(deletedCount) applications for job \(jobID)")
         }
     }
     
-    /// Count applications for a job
+    // Count applications for a job
     func countApplicationsByJob(jobID: String) async throws -> Int {
         let snapshot = try await applicationsRef
             .whereField("jobID", isEqualTo: jobID)

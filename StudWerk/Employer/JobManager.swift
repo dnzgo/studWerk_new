@@ -62,7 +62,7 @@ final class JobManager {
     }
     
     func fetchJobs(status: String? = "open", limit: Int? = nil) async throws -> [Job] {
-        print("🔍 JobManager: Fetching jobs with status: \(status ?? "any"), limit: \(limit?.description ?? "none")")
+        print("JobManager: Fetching jobs with status: \(status ?? "any"), limit: \(limit?.description ?? "none")")
         
         var query: Query = jobsRef
         
@@ -84,7 +84,7 @@ final class JobManager {
             snapshot = try await query.getDocuments()
         } catch {
             // If ordering fails (likely due to missing composite index), fetch without orderBy
-            print("⚠️ JobManager: OrderBy failed, fetching without order: \(error.localizedDescription)")
+            print("JobManager: OrderBy failed, fetching without order: \(error.localizedDescription)")
             var fallbackQuery: Query = jobsRef
             if let status = status {
                 fallbackQuery = fallbackQuery.whereField("status", isEqualTo: status)
@@ -95,7 +95,7 @@ final class JobManager {
             snapshot = try await fallbackQuery.getDocuments()
         }
         
-        print("📊 JobManager: Found \(snapshot.documents.count) documents in Firestore")
+        print("JobManager: Found \(snapshot.documents.count) documents in Firestore")
         
         var jobs = try snapshot.documents.compactMap { document -> Job? in
             let data = document.data()
@@ -147,7 +147,7 @@ final class JobManager {
             jobs = Array(jobs.prefix(limit))
         }
         
-        print("✅ JobManager: Returning \(jobs.count) jobs")
+        print("JobManager: Returning \(jobs.count) jobs")
         return jobs
     }
     
@@ -199,7 +199,7 @@ final class JobManager {
     }
     
     func fetchJobsByEmployer(employerID: String, status: String? = nil) async throws -> [Job] {
-        print("🔍 JobManager: Fetching jobs for employerID: \(employerID), status: \(status ?? "any")")
+        print("JobManager: Fetching jobs for employerID: \(employerID), status: \(status ?? "any")")
         
         var query: Query = jobsRef.whereField("employerID", isEqualTo: employerID)
         
@@ -215,7 +215,7 @@ final class JobManager {
             snapshot = try await query.getDocuments()
         } catch {
             // If ordering fails (likely due to missing composite index), fetch without orderBy
-            print("⚠️ JobManager: OrderBy failed, fetching without order: \(error.localizedDescription)")
+            print("JobManager: OrderBy failed, fetching without order: \(error.localizedDescription)")
             var fallbackQuery: Query = jobsRef.whereField("employerID", isEqualTo: employerID)
             if let status = status {
                 fallbackQuery = fallbackQuery.whereField("status", isEqualTo: status)
@@ -223,7 +223,7 @@ final class JobManager {
             snapshot = try await fallbackQuery.getDocuments()
         }
         
-        print("📊 JobManager: Found \(snapshot.documents.count) documents in Firestore")
+        print("JobManager: Found \(snapshot.documents.count) documents in Firestore")
         
         var jobs = try snapshot.documents.compactMap { document -> Job? in
             let data = document.data()
@@ -270,7 +270,7 @@ final class JobManager {
         // Sort by createdAt descending (newest first) if we fetched without orderBy
         jobs.sort { $0.createdAt > $1.createdAt }
         
-        print("✅ JobManager: Returning \(jobs.count) jobs")
+        print("JobManager: Returning \(jobs.count) jobs")
         return jobs
     }
     

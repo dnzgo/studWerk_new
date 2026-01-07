@@ -100,7 +100,7 @@ struct StudentApplicationsView: View {
             return
         }
         
-        print("🔍 StudentApplicationsView: Loading applications for student \(studentID)")
+        print("StudentApplicationsView: Loading applications for student \(studentID)")
         await MainActor.run {
             isLoading = true
             errorMessage = nil
@@ -108,7 +108,7 @@ struct StudentApplicationsView: View {
         
         do {
             let fetchedApplications = try await ApplicationManager.shared.fetchApplicationsByStudent(studentID: studentID)
-            print("✅ StudentApplicationsView: Fetched \(fetchedApplications.count) applications")
+            print("StudentApplicationsView: Fetched \(fetchedApplications.count) applications")
             await MainActor.run {
                 self.applications = fetchedApplications
                 isLoading = false
@@ -119,8 +119,8 @@ struct StudentApplicationsView: View {
                 isLoading = false
                 let errorDesc = error.localizedDescription
                 errorMessage = "Failed to load applications: \(errorDesc)"
-                print("❌ Error loading applications: \(errorDesc)")
-                print("❌ Full error: \(error)")
+                print("Error loading applications: \(errorDesc)")
+                print("Full error: \(error)")
             }
         }
     }

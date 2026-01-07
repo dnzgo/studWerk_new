@@ -186,23 +186,23 @@ struct EmployerApplicationCard: View {
     private func updateApplicationStatus(_ status: ApplicationStatus) async {
         do {
             try await ApplicationManager.shared.updateApplicationStatus(applicationID: application.id, status: status)
-            print("✅ Updated application \(application.id) to \(status.rawValue)")
+            print("Updated application \(application.id) to \(status.rawValue)")
             // Post notification to reload applications
             NotificationCenter.default.post(name: NSNotification.Name("ApplicationStatusUpdated"), object: nil)
         } catch {
-            print("❌ Error updating application status: \(error.localizedDescription)")
+            print("Error updating application status: \(error.localizedDescription)")
         }
     }
     
     private func completeJob() async {
         do {
             try await ApplicationManager.shared.completeJob(applicationID: application.id)
-            print("✅ Completed job for application \(application.id)")
+            print("Completed job for application \(application.id)")
             // Post notification to reload applications and jobs
             NotificationCenter.default.post(name: NSNotification.Name("ApplicationStatusUpdated"), object: nil)
             NotificationCenter.default.post(name: NSNotification.Name("JobStatusUpdated"), object: nil)
         } catch {
-            print("❌ Error completing job: \(error.localizedDescription)")
+            print("Error completing job: \(error.localizedDescription)")
         }
     }
 }

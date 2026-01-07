@@ -78,7 +78,7 @@ struct JobApplicationsView: View {
     }
     
     private func loadApplications() async {
-        print("🔍 JobApplicationsView: Loading applications for job \(job.id)")
+        print("JobApplicationsView: Loading applications for job \(job.id)")
         await MainActor.run {
             isLoading = true
             errorMessage = nil
@@ -86,7 +86,7 @@ struct JobApplicationsView: View {
         
         do {
             let fetchedApplications = try await ApplicationManager.shared.fetchApplicationsByJob(jobID: job.id)
-            print("✅ JobApplicationsView: Fetched \(fetchedApplications.count) applications")
+            print("JobApplicationsView: Fetched \(fetchedApplications.count) applications")
             await MainActor.run {
                 self.applications = fetchedApplications
                 isLoading = false
@@ -97,8 +97,8 @@ struct JobApplicationsView: View {
                 isLoading = false
                 let errorDesc = error.localizedDescription
                 errorMessage = "Failed to load applications: \(errorDesc)"
-                print("❌ Error loading applications: \(errorDesc)")
-                print("❌ Full error: \(error)")
+                print("Error loading applications: \(errorDesc)")
+                print("Full error: \(error)")
             }
         }
     }

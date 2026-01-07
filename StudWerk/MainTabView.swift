@@ -78,7 +78,7 @@ struct MainTabView: View {
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("NavigateToApplications"))) { _ in
-            // Switch to My Jobs tab (index 2)
+            // Switch to My Jobs tab
             selectedTab = 2
         }
     }

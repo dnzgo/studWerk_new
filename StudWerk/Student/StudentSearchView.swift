@@ -146,7 +146,7 @@ struct StudentSearchView: View {
     }
     
     private func loadJobs() async {
-        print("🔍 StudentSearchView: Loading jobs")
+        print("StudentSearchView: Loading jobs")
         await MainActor.run {
             isLoading = true
             errorMessage = nil
@@ -154,7 +154,7 @@ struct StudentSearchView: View {
         
         do {
             let fetchedJobs = try await JobManager.shared.fetchJobs(status: "open")
-            print("✅ StudentSearchView: Fetched \(fetchedJobs.count) jobs")
+            print("StudentSearchView: Fetched \(fetchedJobs.count) jobs")
             await MainActor.run {
                 self.jobs = fetchedJobs
                 isLoading = false
@@ -165,8 +165,8 @@ struct StudentSearchView: View {
                 isLoading = false
                 let errorDesc = error.localizedDescription
                 errorMessage = "Failed to load jobs: \(errorDesc)"
-                print("❌ Error loading jobs: \(errorDesc)")
-                print("❌ Full error: \(error)")
+                print("Error loading jobs: \(errorDesc)")
+                print("Full error: \(error)")
             }
         }
     }

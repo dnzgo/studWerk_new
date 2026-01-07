@@ -222,14 +222,14 @@ struct ApplicationCard: View {
                 }
             }
             
-            print("📧 Loaded employer contact - Email: \(employerEmail), Phone: \(employerPhone), Address: \(employerAddress)")
+            print("Loaded employer contact - Email: \(employerEmail), Phone: \(employerPhone), Address: \(employerAddress)")
         } catch {
             print("Error loading employer contact: \(error.localizedDescription)")
         }
     }
     
     private func loadJobAndShowDetail() async {
-        print("🔍 ApplicationCard: Loading job details for jobID: \(application.jobID)")
+        print("ApplicationCard: Loading job details for jobID: \(application.jobID)")
         
         await MainActor.run {
             isLoadingJob = true
@@ -239,14 +239,14 @@ struct ApplicationCard: View {
         
         do {
             if let fetchedJob = try await JobManager.shared.fetchJob(byID: application.jobID) {
-                print("✅ ApplicationCard: Successfully loaded job: \(fetchedJob.jobTitle)")
+                print("ApplicationCard: Successfully loaded job: \(fetchedJob.jobTitle)")
                 await MainActor.run {
                     job = fetchedJob
                     isLoadingJob = false
                     showingJobDetail = true
                 }
             } else {
-                print("❌ ApplicationCard: Job not found for ID: \(application.jobID)")
+                print("ApplicationCard: Job not found for ID: \(application.jobID)")
                 await MainActor.run {
                     isLoadingJob = false
                     errorMessage = "Job not found"
@@ -254,7 +254,7 @@ struct ApplicationCard: View {
                 }
             }
         } catch {
-            print("❌ ApplicationCard: Error loading job: \(error.localizedDescription)")
+            print("ApplicationCard: Error loading job: \(error.localizedDescription)")
             await MainActor.run {
                 isLoadingJob = false
                 errorMessage = "Failed to load job details: \(error.localizedDescription)"

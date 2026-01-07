@@ -210,14 +210,14 @@ struct EmployerJobsView: View {
     
     private func loadJobs() async {
         guard let employerID = appState.uid else {
-            print("⚠️ EmployerJobsView: No employerID found in appState")
+            print("EmployerJobsView: No employerID found in appState")
             await MainActor.run {
                 errorMessage = "No employer ID found. Please log in again."
             }
             return
         }
         
-        print("🔍 EmployerJobsView: Loading jobs for employerID: \(employerID)")
+        print("EmployerJobsView: Loading jobs for employerID: \(employerID)")
         await MainActor.run {
             isLoading = true
             errorMessage = nil
@@ -225,7 +225,7 @@ struct EmployerJobsView: View {
         
         do {
             let fetchedJobs = try await JobManager.shared.fetchJobsByEmployer(employerID: employerID)
-            print("✅ EmployerJobsView: Fetched \(fetchedJobs.count) jobs")
+            print("EmployerJobsView: Fetched \(fetchedJobs.count) jobs")
             
             // Load application counts for all jobs
             var counts: [String: Int] = [:]
@@ -234,7 +234,7 @@ struct EmployerJobsView: View {
                     let count = try await ApplicationManager.shared.countApplicationsByJob(jobID: job.id)
                     counts[job.id] = count
                 } catch {
-                    print("⚠️ Error counting applications for job \(job.id): \(error.localizedDescription)")
+                    print("Error counting applications for job \(job.id): \(error.localizedDescription)")
                     counts[job.id] = 0
                 }
             }
@@ -250,32 +250,32 @@ struct EmployerJobsView: View {
                 isLoading = false
                 let errorDesc = error.localizedDescription
                 errorMessage = "Failed to load jobs: \(errorDesc)"
-                print("❌ Error loading jobs: \(errorDesc)")
-                print("❌ Full error: \(error)")
+                print("Error loading jobs: \(errorDesc)")
+                print("Full error: \(error)")
             }
         }
     }
     
     private func loadApplications() async {
         guard let employerID = appState.uid else {
-            print("⚠️ EmployerJobsView: No employerID found for loading applications")
+            print("EmployerJobsView: No employerID found for loading applications")
             return
         }
         
-        print("🔍 EmployerJobsView: Loading applications for employerID: \(employerID)")
+        print("EmployerJobsView: Loading applications for employerID: \(employerID)")
         await MainActor.run {
             isLoadingApplications = true
         }
         
         do {
             let fetchedApplications = try await ApplicationManager.shared.fetchApplicationsByEmployer(employerID: employerID)
-            print("✅ EmployerJobsView: Fetched \(fetchedApplications.count) applications")
+            print("EmployerJobsView: Fetched \(fetchedApplications.count) applications")
             
             // Filter out applications from completed jobs
             let completedJobIDs = Set(jobs.filter { $0.status == "completed" || $0.status == "closed" }.map { $0.id })
             let filteredApplications = fetchedApplications.filter { !completedJobIDs.contains($0.jobID) }
             
-            print("✅ EmployerJobsView: Filtered to \(filteredApplications.count) applications (excluding completed jobs)")
+            print("EmployerJobsView: Filtered to \(filteredApplications.count) applications (excluding completed jobs)")
             await MainActor.run {
                 self.applications = filteredApplications
                 isLoadingApplications = false
@@ -284,8 +284,8 @@ struct EmployerJobsView: View {
             await MainActor.run {
                 isLoadingApplications = false
                 let errorDesc = error.localizedDescription
-                print("❌ Error loading applications: \(errorDesc)")
-                print("❌ Full error: \(error)")
+                print("Error loading applications: \(errorDesc)")
+                print("Full error: \(error)")
             }
         }
     }
@@ -297,7 +297,7 @@ struct EmployerJobsView: View {
                 let count = try await ApplicationManager.shared.countApplicationsByJob(jobID: job.id)
                 counts[job.id] = count
             } catch {
-                print("⚠️ Error counting applications for job \(job.id): \(error.localizedDescription)")
+                print("Error counting applications for job \(job.id): \(error.localizedDescription)")
                 counts[job.id] = 0
             }
         }
