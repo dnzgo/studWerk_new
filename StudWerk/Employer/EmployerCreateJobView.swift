@@ -39,6 +39,12 @@ struct EmployerCreateJobView: View {
                             .foregroundColor(.secondary)
                     }
                     .padding(.top, 20)
+                    
+                    // Job Details Section
+                    VStack(alignment: .leading, spacing: 20) {
+                        Text("Job Details")
+                            .font(.headline)
+                            .fontWeight(.semibold)
                         
                         VStack(spacing: 16) {
                             // Job Title
@@ -84,6 +90,12 @@ struct EmployerCreateJobView: View {
                             
                         }
                     }
+                    
+                    // Payment & Schedule Section
+                    VStack(alignment: .leading, spacing: 20) {
+                        Text("Payment & Schedule")
+                            .font(.headline)
+                            .fontWeight(.semibold)
                         
                         VStack(spacing: 16) {
                             // Payment
@@ -144,8 +156,16 @@ struct EmployerCreateJobView: View {
                                         .padding()
                                         .background(Color(.systemGray6))
                                         .cornerRadius(8)
+                                }
+                            }
                         }
                     }
+                    
+                    // Location Section
+                    VStack(alignment: .leading, spacing: 20) {
+                        Text("Location")
+                            .font(.headline)
+                            .fontWeight(.semibold)
                         
                         VStack(spacing: 16) {
                             // Location Field
@@ -156,6 +176,7 @@ struct EmployerCreateJobView: View {
                                 
                                 TextField("e.g., Musterstraße 123, 10115 Berlin", text: $location)
                                     .textFieldStyle(RoundedBorderTextFieldStyle())
+                            }
                         }
                     }
                     
