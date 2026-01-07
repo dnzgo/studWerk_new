@@ -8,7 +8,11 @@
 import SwiftUI
 
 struct EmployerJobsView: View {
+    @EnvironmentObject var appState: AppState
     @State private var selectedTab = 0
+    @State private var jobs: [Job] = []
+    @State private var isLoading = false
+    @State private var errorMessage: String? = nil
     
     var body: some View {
         NavigationView {
@@ -25,26 +29,159 @@ struct EmployerJobsView: View {
                 
                 // Content
                 ScrollView {
-                    LazyVStack(spacing: 12) {
-                        if selectedTab == 0 {
-                            ForEach(activeJobs, id: \.id) { job in
-                                EmployerJobCard(job: job)
-                            }
-                        } else if selectedTab == 1 {
-                            ForEach(jobApplications, id: \.id) { application in
-                                JobApplicationCard(application: application)
-                            }
-                        } else {
-                            ForEach(completedJobs, id: \.id) { job in
-                                EmployerJobCard(job: job)
+                    if isLoading {
+                        ProgressView()
+                            .padding(.top, 40)
+                    } else {
+                        LazyVStack(spacing: 12) {
+                            if selectedTab == 0 {
+                                if activeJobsList.isEmpty {
+                                    VStack(spacing: 16) {
+                                        Image(systemName: "briefcase")
+                                            .font(.system(size: 50))
+                                            .foregroundColor(.secondary)
+                                        Text("No active jobs")
+                                            .font(.headline)
+                                            .foregroundColor(.secondary)
+                                        Text("Create a new job to get started")
+                                            .font(.subheadline)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    .padding(.top, 40)
+                                } else {
+                                    ForEach(activeJobsList, id: \.id) { job in
+                                        EmployerJobCard(job: job)
+                                    }
+                                }
+                            } else if selectedTab == 1 {
+                                // Applications tab - keep mock data for now
+                                ForEach(jobApplications, id: \.id) { application in
+                                    JobApplicationCard(application: application)
+                                }
+                            } else {
+                                if completedJobsList.isEmpty {
+                                    VStack(spacing: 16) {
+                                        Image(systemName: "checkmark.circle")
+                                            .font(.system(size: 50))
+                                            .foregroundColor(.secondary)
+                                        Text("No completed jobs")
+                                            .font(.headline)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    .padding(.top, 40)
+                                } else {
+                                    ForEach(completedJobsList, id: \.id) { job in
+                                        EmployerJobCard(job: job)
+                                    }
+                                }
                             }
                         }
+                        .padding(.horizontal, 20)
+                        .padding(.top, 20)
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 20)
                 }
             }
             .navigationTitle("My Jobs")
+        }
+        .task {
+            await loadJobs()
+        }
+        .refreshable {
+            await loadJobs()
+        }
+        .alert("Error", isPresented: Binding(
+            get: { errorMessage != nil },
+            set: { if !$0 { errorMessage = nil } }
+        )) {
+            Button("OK") { }
+        } message: {
+            if let errorMessage = errorMessage {
+                Text(errorMessage)
+            }
+        }
+    }
+    
+    private var activeJobsList: [EmployerJob] {
+        jobs.filter { job in
+            job.status == "open" || job.status == "active"
+        }
+        .map { job in
+            convertToEmployerJob(job)
+        }
+    }
+    
+    private var completedJobsList: [EmployerJob] {
+        jobs.filter { job in
+            job.status == "completed" || job.status == "closed"
+        }
+        .map { job in
+            convertToEmployerJob(job)
+        }
+    }
+    
+    private func convertToEmployerJob(_ job: Job) -> EmployerJob {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateStyle = .medium
+        dateFormatter.timeStyle = .none
+        
+        let status: JobStatus
+        switch job.status.lowercased() {
+        case "open", "active":
+            status = .active
+        case "paused":
+            status = .paused
+        case "completed", "closed":
+            status = .completed
+        case "expired":
+            status = .expired
+        default:
+            status = .active
+        }
+        
+        return EmployerJob(
+            id: job.id,
+            position: job.jobTitle,
+            category: job.category,
+            pay: job.pay,
+            date: dateFormatter.string(from: job.date),
+            location: job.location,
+            applications: 0, // TODO: Fetch application count
+            description: job.jobDescription,
+            status: status
+        )
+    }
+    
+    private func loadJobs() async {
+        guard let employerID = appState.uid else {
+            print("⚠️ EmployerJobsView: No employerID found in appState")
+            await MainActor.run {
+                errorMessage = "No employer ID found. Please log in again."
+            }
+            return
+        }
+        
+        print("🔍 EmployerJobsView: Loading jobs for employerID: \(employerID)")
+        await MainActor.run {
+            isLoading = true
+            errorMessage = nil
+        }
+        
+        do {
+            let fetchedJobs = try await JobManager.shared.fetchJobsByEmployer(employerID: employerID)
+            print("✅ EmployerJobsView: Fetched \(fetchedJobs.count) jobs")
+            await MainActor.run {
+                self.jobs = fetchedJobs
+                isLoading = false
+                errorMessage = nil
+            }
+        } catch {
+            await MainActor.run {
+                isLoading = false
+                let errorDesc = error.localizedDescription
+                errorMessage = "Failed to load jobs: \(errorDesc)"
+                print("❌ Error loading jobs: \(errorDesc)")
+                print("❌ Full error: \(error)")
+            }
         }
     }
 }
@@ -288,7 +425,7 @@ struct ApplicationStatusBadge: View {
 }
 
 struct EmployerJob: Identifiable {
-    let id = UUID()
+    let id: String
     let position: String
     let category: String
     let pay: String
@@ -326,23 +463,14 @@ enum JobStatus: String, CaseIterable {
 }
 
 
-let activeJobs = [
-    EmployerJob(position: "Garden Cleaning", category: "General", pay: "€50", date: "Dec 20, 2024", location: "Charlottenburg, Berlin", applications: 3, description: "One-time garden cleaning job for private home.", status: .active),
-    EmployerJob(position: "Wall Painting", category: "General", pay: "€120", date: "Dec 22, 2024", location: "Mitte, Berlin", applications: 5, description: "Painting apartment walls, one-time job.", status: .active),
-    EmployerJob(position: "Office Cleaning", category: "General", pay: "€80", date: "Dec 25, 2024", location: "Potsdamer Platz, Berlin", applications: 8, description: "Evening office cleaning, one-time job.", status: .active)
-]
-
+// Mock data for applications tab (to be replaced with real data later)
 let jobApplications = [
-    JobApplicationDetail(studentName: "Max Mustermann", position: "Software Developer Intern", rating: 4.5, appliedDate: "2 days ago", experience: "Computer Science student with experience in Python and JavaScript", status: .pending),
-    JobApplicationDetail(studentName: "Anna Schmidt", position: "Marketing Assistant", rating: 4.2, appliedDate: "1 day ago", experience: "Marketing student with social media experience", status: .pending),
-    JobApplicationDetail(studentName: "Tom Weber", position: "Sales Assistant", rating: 4.8, appliedDate: "3 days ago", experience: "Business student with retail experience", status: .accepted)
-]
-
-let completedJobs = [
-    EmployerJob(position: "Garden Cleaning", category: "General", pay: "€45", date: "Nov 30, 2024", location: "Charlottenburg, Berlin", applications: 2, description: "Completed garden cleaning job", status: .completed),
-    EmployerJob(position: "Wall Painting", category: "General", pay: "€100", date: "Nov 25, 2024", location: "Mitte, Berlin", applications: 3, description: "Completed wall painting job", status: .completed)
+    JobApplicationDetail(studentName: "Max Mustermann", position: "Software Developer Intern", rating: 4.5, appliedDate: "2 days ago", experience: "Computer Science student with experience in Python and JavaScript", status: ApplicationStatus.pending),
+    JobApplicationDetail(studentName: "Anna Schmidt", position: "Marketing Assistant", rating: 4.2, appliedDate: "1 day ago", experience: "Marketing student with social media experience", status: ApplicationStatus.pending),
+    JobApplicationDetail(studentName: "Tom Weber", position: "Sales Assistant", rating: 4.8, appliedDate: "3 days ago", experience: "Business student with retail experience", status: ApplicationStatus.accepted)
 ]
 
 #Preview {
     EmployerJobsView()
+        .environmentObject(AppState())
 }

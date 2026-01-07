@@ -37,7 +37,7 @@ struct JobCard: View {
                     .foregroundColor(.orange)
                     .font(.caption)
                 
-                Text(job.date)
+                Text(job.dateString)
                     .font(.caption)
                     .foregroundColor(.secondary)
             }

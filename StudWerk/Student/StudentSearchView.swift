@@ -9,17 +9,18 @@ import SwiftUI
 
 struct StudentSearchView: View {
     @State private var searchText = ""
-    @State private var selectedCategory = "All"
-    @State private var minPay = 10.0
-    @State private var maxPay = 30.0
+    @State private var selectedCategory = "General"
     @State private var selectedDate = Date()
     @State private var isRemote = false
     @State private var showingFilters = false
     @State private var sortBy = "Relevance"
     @State private var selectedJob: Job? = nil
+    @State private var jobs: [Job] = []
+    @State private var isLoading = false
+    @State private var errorMessage: String? = nil
     
-    let categories = ["All", "Technology", "Retail", "Food Service", "Marketing", "Administration", "Customer Service", "Other"]
-    let sortOptions = ["Relevance", "Pay (High to Low)", "Pay (Low to High)", "Distance", "Date"]
+    let categories = ["General", "Technology", "Retail", "Food Service", "Marketing", "Administration", "Customer Service", "Other"]
+    let sortOptions = ["Relevance", "Pay (High to Low)", "Pay (Low to High)", "Date"]
     
     var body: some View {
         NavigationView {
@@ -89,13 +90,31 @@ struct StudentSearchView: View {
                 
                 // Results
                 ScrollView {
-                    LazyVStack(spacing: 12) {
-                        ForEach(filteredJobs, id: \.id) { job in
-                            SearchJobCard(job: job)
+                    if isLoading {
+                        ProgressView()
+                            .padding(.top, 40)
+                    } else if filteredJobs.isEmpty {
+                        VStack(spacing: 16) {
+                            Image(systemName: "magnifyingglass")
+                                .font(.system(size: 50))
+                                .foregroundColor(.secondary)
+                            Text("No jobs found")
+                                .font(.headline)
+                                .foregroundColor(.secondary)
+                            Text("Try adjusting your search or filters")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
                         }
+                        .padding(.top, 40)
+                    } else {
+                        LazyVStack(spacing: 12) {
+                            ForEach(filteredJobs, id: \.id) { job in
+                                SearchJobCard(job: job)
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.top, 20)
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 20)
                 }
             }
             .navigationTitle("Search Jobs")
@@ -103,39 +122,88 @@ struct StudentSearchView: View {
         .sheet(isPresented: $showingFilters) {
             SearchFiltersView(
                 selectedCategory: $selectedCategory,
-                minPay: $minPay,
-                maxPay: $maxPay,
                 selectedDate: $selectedDate,
                 isRemote: $isRemote,
                 categories: categories
             )
         }
+        .task {
+            await loadJobs()
+        }
+        .refreshable {
+            await loadJobs()
+        }
+        .alert("Error", isPresented: Binding(
+            get: { errorMessage != nil },
+            set: { if !$0 { errorMessage = nil } }
+        )) {
+            Button("OK") { }
+        } message: {
+            if let errorMessage = errorMessage {
+                Text(errorMessage)
+            }
+        }
+    }
+    
+    private func loadJobs() async {
+        print("🔍 StudentSearchView: Loading jobs")
+        await MainActor.run {
+            isLoading = true
+            errorMessage = nil
+        }
+        
+        do {
+            let fetchedJobs = try await JobManager.shared.fetchJobs(status: "open")
+            print("✅ StudentSearchView: Fetched \(fetchedJobs.count) jobs")
+            await MainActor.run {
+                self.jobs = fetchedJobs
+                isLoading = false
+                errorMessage = nil
+            }
+        } catch {
+            await MainActor.run {
+                isLoading = false
+                let errorDesc = error.localizedDescription
+                errorMessage = "Failed to load jobs: \(errorDesc)"
+                print("❌ Error loading jobs: \(errorDesc)")
+                print("❌ Full error: \(error)")
+            }
+        }
     }
     
     private var filteredJobs: [Job] {
-        var jobs = getSampleJobs()
+        var filtered = jobs
         
         // Filter by search text
         if !searchText.isEmpty {
-            jobs = jobs.filter { job in
+            filtered = filtered.filter { job in
                 job.company.localizedCaseInsensitiveContains(searchText) ||
                 job.position.localizedCaseInsensitiveContains(searchText) ||
-                job.location.localizedCaseInsensitiveContains(searchText)
+                job.location.localizedCaseInsensitiveContains(searchText) ||
+                job.jobDescription.localizedCaseInsensitiveContains(searchText)
             }
         }
         
         // Filter by category
         if selectedCategory != "All" {
-            jobs = jobs.filter { $0.category == selectedCategory }
+            filtered = filtered.filter { $0.category == selectedCategory }
         }
         
-        // Filter by pay range
-        jobs = jobs.filter { job in
-            let jobPay = extractPayFromString(job.pay)
-            return jobPay >= minPay && jobPay <= maxPay
+        // Removed pay range filter - students can see all jobs with fixed payments
+        
+        // Sort jobs
+        switch sortBy {
+        case "Pay (High to Low)":
+            filtered.sort { extractPayFromString($0.pay) > extractPayFromString($1.pay) }
+        case "Pay (Low to High)":
+            filtered.sort { extractPayFromString($0.pay) < extractPayFromString($1.pay) }
+        case "Date":
+            filtered.sort { $0.date > $1.date }
+        default:
+            break // Relevance - keep original order
         }
         
-        return jobs
+        return filtered
     }
     
     private func extractPayFromString(_ payString: String) -> Double {
@@ -191,7 +259,7 @@ struct SearchJobCard: View {
                     .foregroundColor(.orange)
                     .font(.caption)
                 
-                Text(job.date)
+                Text(job.dateString)
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -249,8 +317,6 @@ struct SearchJobCard: View {
 
 struct SearchFiltersView: View {
     @Binding var selectedCategory: String
-    @Binding var minPay: Double
-    @Binding var maxPay: Double
     @Binding var selectedDate: Date
     @Binding var isRemote: Bool
     let categories: [String]
@@ -277,44 +343,6 @@ struct SearchFiltersView: View {
                                 }
                             }
                         }
-                    }
-                    
-                    // Pay Range Filter
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Pay Range (per hour)")
-                            .font(.headline)
-                            .fontWeight(.semibold)
-                        
-                        VStack(spacing: 16) {
-                            HStack {
-                                Text("Min: €\(Int(minPay))")
-                                    .font(.subheadline)
-                                Spacer()
-                                Text("Max: €\(Int(maxPay))")
-                                    .font(.subheadline)
-                            }
-                            
-                            VStack(spacing: 8) {
-                                HStack {
-                                    Text("€\(Int(minPay))")
-                                        .font(.caption)
-                                    Spacer()
-                                    Text("€\(Int(maxPay))")
-                                        .font(.caption)
-                                }
-                                
-                                HStack {
-                                    Slider(value: $minPay, in: 5...50, step: 1)
-                                        .accentColor(.blue)
-                                    
-                                    Slider(value: $maxPay, in: 5...50, step: 1)
-                                        .accentColor(.blue)
-                                }
-                            }
-                        }
-                        .padding()
-                        .background(Color(.systemGray6))
-                        .cornerRadius(12)
                     }
                     
                     // Date Filter
@@ -368,8 +396,6 @@ struct SearchFiltersView: View {
     
     private func resetFilters() {
         selectedCategory = "All"
-        minPay = 10.0
-        maxPay = 30.0
         selectedDate = Date()
         isRemote = false
     }

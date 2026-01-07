@@ -8,6 +8,9 @@
 import SwiftUI
 
 struct EmployerHomeView: View {
+    @EnvironmentObject var appState: AppState
+    @State private var jobs: [Job] = []
+    @State private var isLoading = false
     
     var body : some View {
         NavigationView {
@@ -34,26 +37,26 @@ struct EmployerHomeView: View {
                         HStack(spacing : 16) {
                             StatCard(
                                 title: "Active Jobs",
-                                value: "12",
+                                value: "\(activeJobsCount)",
                                 color: .blue,
                                 icon: "briefcase.fill")
                             
                             StatCard(
                                 title: "Applications",
-                                value: "45",
+                                value: "\(applicationsCount)",
                                 color: .green,
                                 icon: "doc.text.fill")
                         }
                         HStack(spacing : 16) {
                             StatCard(
                                 title: "Hired Students",
-                                value: "23",
+                                value: "\(hiredStudentsCount)",
                                 color: .orange,
                                 icon: "person.2.fill")
                             
                             StatCard(
                                 title: "Total Spend",
-                                value: "€2.4K",
+                                value: "€\(totalSpend)",
                                 color: .purple,
                                 icon: "eurosign.circle.fill")
                         }
@@ -88,6 +91,60 @@ struct EmployerHomeView: View {
                 }
             }
         }
+        .task {
+            await loadJobs()
+        }
+        .refreshable {
+            await loadJobs()
+        }
+    }
+    
+    private var activeJobsCount: Int {
+        jobs.filter { $0.status == "open" || $0.status == "active" }.count
+    }
+    
+    private var applicationsCount: Int {
+        // TODO: Fetch real application count
+        0
+    }
+    
+    private var hiredStudentsCount: Int {
+        // TODO: Fetch real hired students count
+        0
+    }
+    
+    private var totalSpend: String {
+        let total = jobs
+            .filter { $0.status == "completed" || $0.status == "closed" }
+            .compactMap { Double($0.payment) }
+            .reduce(0, +)
+        
+        if total >= 1000 {
+            return String(format: "%.1fK", total / 1000)
+        } else {
+            return String(format: "%.0f", total)
+        }
+    }
+    
+    private func loadJobs() async {
+        guard let employerID = appState.uid else {
+            return
+        }
+        
+        isLoading = true
+        
+        do {
+            let fetchedJobs = try await JobManager.shared.fetchJobsByEmployer(employerID: employerID)
+            await MainActor.run {
+                self.jobs = fetchedJobs
+                isLoading = false
+            }
+        } catch {
+            await MainActor.run {
+                isLoading = false
+                print("Error loading jobs: \(error.localizedDescription)")
+            }
+        }
     }
 }
 
@@ -101,4 +158,5 @@ let recentApplications = [
 
 #Preview {
     EmployerHomeView()
+        .environmentObject(AppState())
 }

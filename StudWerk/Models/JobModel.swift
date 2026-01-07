@@ -7,36 +7,40 @@
 
 import SwiftUI
 
-struct Job: Identifiable {
-    let id = UUID()
-    let company: String
-    let position: String
-    let pay: String
+struct Job: Identifiable, Codable {
+    let id: String  // Firestore document ID
+    let employerID: String
+    let jobTitle: String
+    let jobDescription: String
+    let payment: String
+    let date: Date
+    let startTime: Date
+    let endTime: Date
+    let category: String
     let location: String
-    let date: String
-    let distance: String
-}
-
-
-
-// Extended Job model for search
-extension Job {
-    var category: String {
-        // This would be determined by the job's actual category
-        return "General" // Placeholder
+    let createdAt: Date
+    let status: String
+    
+    // Computed properties for display
+    var company: String { "" } // from employer
+    var position: String { jobTitle }
+    var pay: String { "€\(payment)" }
+    var dateString: String {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateStyle = .medium
+        dateFormatter.timeStyle = .none
+        
+        let timeFormatter = DateFormatter()
+        timeFormatter.dateStyle = .none
+        timeFormatter.timeStyle = .short
+        
+        let dateStr = dateFormatter.string(from: date)
+        let startStr = timeFormatter.string(from: startTime)
+        let endStr = timeFormatter.string(from: endTime)
+        
+        return "\(dateStr), \(startStr)-\(endStr)"
     }
-
-    var description: String {
-        return "Looking for a motivated student to join our team. Great opportunity to gain experience in a professional environment."
-    }
-
+    var description: String { jobDescription }
+    var distance: String { "N/A" } // TODO: Calculate based on user location
 }
 
-func getSampleJobs() -> [Job] {
-    return [
-        Job(company: "Private Home", position: "Garden Cleaning", pay: "€50", location: "Charlottenburg, Berlin", date: "Today, 14:00-17:00", distance: "0.8 km"),
-        Job(company: "Individual", position: "Wall Painting", pay: "€120", location: "Mitte, Berlin", date: "Tomorrow, 10:00-16:00", distance: "1.5 km"),
-        Job(company: "Office Building", position: "Office Cleaning", pay: "€80", location: "Potsdamer Platz, Berlin", date: "Dec 25, 18:00-22:00", distance: "2.1 km"),
-        Job(company: "Tech Company", position: "Data Entry", pay: "€15/hour", location: "Friedrichshain, Berlin", date: "This week", distance: "2.1 km")
-    ]
-}

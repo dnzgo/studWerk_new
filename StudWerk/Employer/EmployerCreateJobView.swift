@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct EmployerCreateJobView: View {
+    @EnvironmentObject var appState: AppState
     @State private var jobTitle = ""
     @State private var jobDescription = ""
     @State private var payment = ""
@@ -17,6 +18,9 @@ struct EmployerCreateJobView: View {
     @State private var selectedCategory = "General"
     @State private var location = ""
     @State private var showingSuccessAlert = false
+    @State private var showingErrorAlert = false
+    @State private var errorMessage = ""
+    @State private var isCreating = false
     
     let categories = ["General", "Technology", "Retail", "Food Service", "Marketing", "Administration", "Customer Service", "Other"]
     
@@ -180,16 +184,22 @@ struct EmployerCreateJobView: View {
                     Button(action: {
                         createJob()
                     }) {
-                        Text("Create Job")
-                            .font(.headline)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 50)
-                            .background(isFormValid ? Color.blue : Color.gray)
-                            .cornerRadius(12)
+                        HStack {
+                            if isCreating {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            }
+                            Text(isCreating ? "Creating..." : "Create Job")
+                                .font(.headline)
+                                .fontWeight(.semibold)
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 50)
+                        .background(isFormValid && !isCreating ? Color.blue : Color.gray)
+                        .cornerRadius(12)
                     }
-                    .disabled(!isFormValid)
+                    .disabled(!isFormValid || isCreating)
                     .padding(.horizontal, 20)
                     .padding(.bottom, 20)
                 }
@@ -203,6 +213,11 @@ struct EmployerCreateJobView: View {
         } message: {
             Text("Your job has been successfully posted and is now visible to students.")
         }
+        .alert("Error", isPresented: $showingErrorAlert) {
+            Button("OK") { }
+        } message: {
+            Text(errorMessage)
+        }
     }
     
     private var isFormValid: Bool {
@@ -213,8 +228,40 @@ struct EmployerCreateJobView: View {
     }
     
     private func createJob() {
-        // Handle job creation logic here
-        showingSuccessAlert = true
+        guard let employerID = appState.uid else {
+            errorMessage = "You must be logged in to create a job."
+            showingErrorAlert = true
+            return
+        }
+        
+        isCreating = true
+        
+        Task {
+            do {
+                _ = try await JobManager.shared.createJob(
+                    employerID: employerID,
+                    jobTitle: jobTitle,
+                    jobDescription: jobDescription,
+                    payment: payment,
+                    date: selectedDate,
+                    startTime: startTime,
+                    endTime: endTime,
+                    category: selectedCategory,
+                    location: location
+                )
+                
+                await MainActor.run {
+                    isCreating = false
+                    showingSuccessAlert = true
+                }
+            } catch {
+                await MainActor.run {
+                    isCreating = false
+                    errorMessage = error.localizedDescription
+                    showingErrorAlert = true
+                }
+            }
+        }
     }
     
     private func resetForm() {
@@ -231,4 +278,5 @@ struct EmployerCreateJobView: View {
 
 #Preview {
     EmployerCreateJobView()
+        .environmentObject(AppState())
 }
