@@ -42,9 +42,6 @@ struct EmployerCreateJobView: View {
                     
                     // Job Details Section
                     VStack(alignment: .leading, spacing: 20) {
-                        Text("Job Details")
-                            .font(.headline)
-                            .fontWeight(.semibold)
                         
                         VStack(spacing: 16) {
                             // Job Title
@@ -93,9 +90,6 @@ struct EmployerCreateJobView: View {
                     
                     // Payment & Schedule Section
                     VStack(alignment: .leading, spacing: 20) {
-                        Text("Payment & Schedule")
-                            .font(.headline)
-                            .fontWeight(.semibold)
                         
                         VStack(spacing: 16) {
                             // Payment
@@ -163,9 +157,6 @@ struct EmployerCreateJobView: View {
                     
                     // Location Section
                     VStack(alignment: .leading, spacing: 20) {
-                        Text("Location")
-                            .font(.headline)
-                            .fontWeight(.semibold)
                         
                         VStack(spacing: 16) {
                             // Location Field
