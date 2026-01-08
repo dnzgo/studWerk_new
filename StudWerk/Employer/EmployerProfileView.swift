@@ -278,6 +278,25 @@ struct EmployerSettingsView: View {
                         SettingsRow(icon: "info.circle", title: "About", color: .gray)
                     }
                 }
+                
+                Section {
+                    Button(action: {
+                        logout()
+                    }) {
+                        HStack {
+                            Image(systemName: "arrow.right.square")
+                                .foregroundColor(.red)
+                                .frame(width: 24)
+                            
+                            Text("Log Out")
+                                .font(.subheadline)
+                                .foregroundColor(.red)
+                            
+                            Spacer()
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
@@ -332,6 +351,19 @@ struct EmployerSettingsView: View {
             } catch {
                 print("Error loading current data: \(error.localizedDescription)")
             }
+        }
+    }
+    
+    private func logout() {
+        do {
+            try AuthManager.shared.logout()
+            appState.logout()
+            dismiss()
+        } catch {
+            print("Error logging out: \(error.localizedDescription)")
+            // Still logout from app state even if Firebase logout fails
+            appState.logout()
+            dismiss()
         }
     }
 }
