@@ -10,7 +10,7 @@ import SwiftUI
 struct EmployerRegisterView: View {
     @EnvironmentObject var app: AppState
 
-    @State private var companyName = ""
+    @State private var name = ""
     @State private var email = ""
     @State private var phone = ""
     @State private var companyAddress = ""
@@ -30,7 +30,7 @@ struct EmployerRegisterView: View {
                 .padding(.top, 8)
 
             VStack(spacing: 14) {
-                labeledTextField("Company Name", "Enter company name", text: $companyName, keyboard: .default)
+                labeledTextField("Name", "Enter name", text: $name, keyboard: .default)
                     .textInputAutocapitalization(.words)
                     .textContentType(.organizationName)
 
@@ -41,7 +41,7 @@ struct EmployerRegisterView: View {
                 labeledTextField("Phone Number", "Enter phone number", text: $phone, keyboard: .phonePad)
                     .textContentType(.telephoneNumber)
 
-                labeledTextField("Company Address", "Enter company address", text: $companyAddress, keyboard: .default)
+                labeledTextField("Address", "Enter address", text: $companyAddress, keyboard: .default)
                     .textInputAutocapitalization(.words)
                     .textContentType(.fullStreetAddress)
 
@@ -105,7 +105,7 @@ struct EmployerRegisterView: View {
     }
 
     private func registerEmployer() {
-        guard !companyName.isEmpty, !email.isEmpty, !phone.isEmpty,
+        guard !name.isEmpty, !email.isEmpty, !phone.isEmpty,
               !companyAddress.isEmpty,
               !password.isEmpty, !confirmPassword.isEmpty else {
             alertMessage = "Please fill in all required fields."
@@ -124,7 +124,7 @@ struct EmployerRegisterView: View {
         Task {
             do {
                 let res = try await AuthManager.shared.registerEmployer(
-                    companyName: companyName,
+                    name: name,
                     email: email,
                     phone: phone,
                     companyAddress: companyAddress,

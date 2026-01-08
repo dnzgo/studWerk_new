@@ -42,10 +42,9 @@ final class AuthManager {
     }
 
     func registerStudent(
-        fullName: String,
+        name: String,
         email: String,
         phone: String,
-        uniEmail: String,
         iban: String,
         password: String
     ) async throws -> (uid: String, email: String, type: UserType) {
@@ -64,9 +63,8 @@ final class AuthManager {
             
             try await studentsRef.document(uid).setData([
                 "userID": uid,
-                "name": fullName,
+                "name": name,
                 "phone": phone,
-                "uniEmail": uniEmail,
                 "iban": iban,
                 "createdAt": FieldValue.serverTimestamp()
             ])
@@ -79,7 +77,7 @@ final class AuthManager {
     }
 
     func registerEmployer(
-        companyName: String,
+        name: String,
         email: String,
         phone: String,
         companyAddress: String,
@@ -100,9 +98,10 @@ final class AuthManager {
 
             try await employersRef.document(uid).setData([
                 "userID": uid,
-                "companyName": companyName,
+                "name": name,
                 "phone": phone,
                 "address": companyAddress,
+                "vatID": "",
                 "createdAt": FieldValue.serverTimestamp()
             ])
 

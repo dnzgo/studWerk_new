@@ -43,4 +43,3 @@ struct Job: Identifiable, Codable {
     var description: String { jobDescription }
     var distance: String { "N/A" } // TODO: Calculate based on user location
 }
-

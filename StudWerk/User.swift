@@ -11,18 +11,17 @@ struct User: Identifiable, Codable {
     let id: String  // Changed from UUID to String (will use Firebase UID or custom ID)
     var name: String
     var email: String
-    var userType: UserType
     var phone: String
+    var userType: UserType
     var createdAt: Date
     
     // Student-specific fields (optional, only populated for students)
-    var uniEmail: String?
     var iban: String?
     var studentAddress: String?
     
     // Employer-specific fields (optional, only populated for employers)
-    var companyName: String?
     var companyAddress: String?
+    var vatID: String?
 
     init(
         id: String,
@@ -31,10 +30,9 @@ struct User: Identifiable, Codable {
         userType: UserType,
         phone: String,
         createdAt: Date = Date(),
-        uniEmail: String? = nil,
         iban: String? = nil,
         studentAddress: String? = nil,
-        companyName: String? = nil,
+        vatID: String? = nil,
         companyAddress: String? = nil
     ) {
         self.id = id
@@ -43,10 +41,9 @@ struct User: Identifiable, Codable {
         self.userType = userType
         self.phone = phone
         self.createdAt = createdAt
-        self.uniEmail = uniEmail
         self.iban = iban
+        self.vatID = vatID
         self.studentAddress = studentAddress
-        self.companyName = companyName
         self.companyAddress = companyAddress
     }
 }

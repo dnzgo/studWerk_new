@@ -10,10 +10,9 @@ import SwiftUI
 struct StudentRegisterView: View {
     @EnvironmentObject var app: AppState
 
-    @State private var fullName = ""
+    @State private var name = ""
     @State private var email = ""
     @State private var phone = ""
-    @State private var uniEmail = ""
     @State private var iban = ""
     @State private var password = ""
     @State private var confirmPassword = ""
@@ -31,7 +30,7 @@ struct StudentRegisterView: View {
                 .padding(.top, 8)
 
             VStack(spacing: 14) {
-                labeledTextField("Full Name", "Enter your full name", text: $fullName, keyboard: .default)
+                labeledTextField("Full Name", "Enter your full name", text: $name, keyboard: .default)
                     .textInputAutocapitalization(.words)
                     .textContentType(.name)
 
@@ -41,10 +40,6 @@ struct StudentRegisterView: View {
 
                 labeledTextField("Phone Number", "Enter your phone number", text: $phone, keyboard: .phonePad)
                     .textContentType(.telephoneNumber)
-
-                labeledTextField("University Email", "your.name@university.de", text: $uniEmail, keyboard: .emailAddress)
-                    .textInputAutocapitalization(.never)
-                    .textContentType(.emailAddress)
 
                 labeledTextField("Bank Account (IBAN)", "DE89 3704 0044 0532 0130 00", text: $iban, keyboard: .default)
                     .textInputAutocapitalization(.characters)
@@ -107,8 +102,7 @@ struct StudentRegisterView: View {
     }
 
     private func registerStudent() {
-        guard !fullName.isEmpty, !email.isEmpty, !phone.isEmpty,
-              !uniEmail.isEmpty, !iban.isEmpty,
+        guard !name.isEmpty, !email.isEmpty, !phone.isEmpty, !iban.isEmpty,
               !password.isEmpty, !confirmPassword.isEmpty else {
             alertMessage = "Please fill in all required fields."
             showingAlert = true
@@ -126,10 +120,9 @@ struct StudentRegisterView: View {
         Task {
             do {
                 let res = try await AuthManager.shared.registerStudent(
-                    fullName: fullName,
+                    name: name,
                     email: email,
                     phone: phone,
-                    uniEmail: uniEmail,
                     iban: iban,
                     password: password
                 )

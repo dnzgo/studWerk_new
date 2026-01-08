@@ -6,25 +6,28 @@
 //
 
 import SwiftUI
+import FirebaseFirestore
 
 struct StudentProfileView: View {
     @EnvironmentObject var appState: AppState
-    @State private var workLimit = 20
-    @State private var address = "" // TODO: Fetch from user profile
-    @State private var university = "" // TODO: Fetch from user profile
-    @State private var studyProgram = "" // TODO: Fetch from user profile
-    @State private var semester = 0 // TODO: Fetch from user profile
     @State private var showingSettings = false
-    @State private var currentEarnings = 0.0 // TODO: Calculate from applications
+    @State private var currentEarnings = 0.0
     @State private var monthlyLimit = 1100.0
-    @State private var iban = "" // TODO: Fetch from user profile
+    @State private var iban = ""
+    @State private var address = ""
     @State private var showingPaymentDetails = false
-    @State private var studentName = "" // TODO: Fetch from user profile
+    @State private var studentName = ""
+    @State private var isLoading = false
+    @State private var errorMessage: String?
     
     var body: some View {
         NavigationView {
             ScrollView {
-                VStack(spacing: 24) {
+                if isLoading {
+                    ProgressView("Loading profile...")
+                        .padding(.top, 100)
+                } else {
+                    VStack(spacing: 24) {
                     // Profile Header
                     VStack(spacing: 16) {
                         // Profile Picture
@@ -42,12 +45,8 @@ struct StudentProfileView: View {
                                 .font(.title2)
                                 .fontWeight(.bold)
                             
-                            Text(studyProgram.isEmpty ? "Student" : "\(studyProgram) Student")
+                            Text("Student")
                                 .font(.subheadline)
-                                .foregroundColor(.secondary)
-                            
-                            Text(university.isEmpty ? "" : university)
-                                .font(.caption)
                                 .foregroundColor(.secondary)
                         }
                     }
@@ -154,22 +153,22 @@ struct StudentProfileView: View {
                         
                         VStack(spacing: 12) {
                             HStack {
-                                Text("Current Address")
+                                Text("IBAN")
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
                                 Spacer()
-                                Text(address)
+                                Text(iban)
                                     .font(.subheadline)
                                     .fontWeight(.medium)
                                     .multilineTextAlignment(.trailing)
                             }
                             
                             HStack {
-                                Text("University")
+                                Text("Address")
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
                                 Spacer()
-                                Text(university)
+                                Text(address)
                                     .font(.subheadline)
                                     .fontWeight(.medium)
                                     .multilineTextAlignment(.trailing)
@@ -201,9 +200,10 @@ struct StudentProfileView: View {
                         .background(Color.blue.opacity(0.1))
                         .cornerRadius(12)
                     }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 80)
                 }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 80)
             }
             .navigationTitle("Profile")
             .navigationBarTitleDisplayMode(.large)
@@ -213,6 +213,71 @@ struct StudentProfileView: View {
         }
         .sheet(isPresented: $showingPaymentDetails) {
             PaymentDetailsView(iban: iban, currentEarnings: currentEarnings, monthlyLimit: monthlyLimit)
+        }
+        .onAppear {
+            Task {
+                await loadProfileData()
+            }
+        }
+        .alert("Error", isPresented: .constant(errorMessage != nil)) {
+            Button("OK") {
+                errorMessage = nil
+            }
+        } message: {
+            if let errorMessage = errorMessage {
+                Text(errorMessage)
+            }
+        }
+    }
+    
+    private func loadProfileData() async {
+        guard let studentID = appState.uid else {
+            await MainActor.run {
+                errorMessage = "You must be logged in to view profile"
+            }
+            return
+        }
+        
+        await MainActor.run {
+            isLoading = true
+            errorMessage = nil
+        }
+        
+        do {
+            let db = Firestore.firestore()
+            
+            // Load student data from students collection
+            let studentDoc = try await db.collection("students").document(studentID).getDocument()
+            
+            if let data = studentDoc.data() {
+                await MainActor.run {
+                    studentName = data["name"] as? String ?? ""
+                    iban = data["iban"] as? String ?? ""
+                }
+            }
+            
+            // Calculate earnings from completed applications
+            let applications = try await ApplicationManager.shared.fetchApplicationsByStudent(studentID: studentID, status: .completed)
+            
+            let earnings = applications.reduce(0.0) { total, app in
+                // Extract payment amount from string like "€150" or "150"
+                let paymentString = app.jobPayment
+                let numbers = paymentString.components(separatedBy: CharacterSet.decimalDigits.inverted)
+                    .compactMap { Double($0) }
+                let amount = numbers.first ?? 0.0
+                return total + amount
+            }
+            
+            await MainActor.run {
+                currentEarnings = earnings
+                isLoading = false
+            }
+        } catch {
+            await MainActor.run {
+                isLoading = false
+                errorMessage = "Failed to load profile: \(error.localizedDescription)"
+                print("Error loading profile: \(error.localizedDescription)")
+            }
         }
     }
 }

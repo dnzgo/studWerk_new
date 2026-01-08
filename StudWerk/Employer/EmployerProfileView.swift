@@ -6,21 +6,26 @@
 //
 
 import SwiftUI
+import FirebaseFirestore
 
 struct EmployerProfileView: View {
     @EnvironmentObject var appState: AppState
-    @State private var employerName = "" // TODO: Fetch from user profile
     @State private var isCompany = false
-    @State private var companyName = "" // TODO: Fetch from user profile
-    @State private var industry = "" // TODO: Fetch from user profile
-    @State private var companySize = "" // TODO: Fetch from user profile
-    @State private var location = "" // TODO: Fetch from user profile
+    @State private var name = ""
+    @State private var location = ""
     @State private var showingSettings = false
+    @State private var isLoading = false
+    @State private var vatID: String = ""
+    @State private var errorMessage: String?
     
     var body: some View {
         NavigationView {
             ScrollView {
-                VStack(spacing: 24) {
+                if isLoading {
+                    ProgressView("Loading profile...")
+                        .padding(.top, 100)
+                } else {
+                    VStack(spacing: 24) {
                     // Profile Header
                     VStack(spacing: 16) {
                         // Profile Picture
@@ -34,11 +39,11 @@ struct EmployerProfileView: View {
                             )
                         
                         VStack(spacing: 4) {
-                            Text(isCompany ? (companyName.isEmpty ? "Company" : companyName) : (employerName.isEmpty ? "Employer" : employerName))
+                            Text(name.isEmpty ? (isCompany ? "Company" : "Employer") : name)
                                 .font(.title2)
                                 .fontWeight(.bold)
                             
-                            Text(isCompany ? (industry.isEmpty ? "Company" : industry) : "Individual Employer")
+                            Text(isCompany ? "Company" : "Individual Employer")
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                             
@@ -56,7 +61,7 @@ struct EmployerProfileView: View {
                             .fontWeight(.semibold)
                         
                         HStack {
-                            Text("Individual Employer")
+                            Text(isCompany ? "Company" : "Individual")
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                             
@@ -82,28 +87,18 @@ struct EmployerProfileView: View {
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
                                 Spacer()
-                                Text(isCompany ? companyName : employerName)
+                                Text(name)
                                     .font(.subheadline)
                                     .fontWeight(.medium)
                             }
                             
                             if isCompany {
                                 HStack {
-                                    Text("Industry")
+                                    Text("VAT")
                                         .font(.subheadline)
                                         .foregroundColor(.secondary)
                                     Spacer()
-                                    Text(industry)
-                                        .font(.subheadline)
-                                        .fontWeight(.medium)
-                                }
-                                
-                                HStack {
-                                    Text("Company Size")
-                                        .font(.subheadline)
-                                        .foregroundColor(.secondary)
-                                    Spacer()
-                                    Text(companySize)
+                                    Text(vatID.isEmpty ? "Not set" : vatID)
                                         .font(.subheadline)
                                         .fontWeight(.medium)
                                 }
@@ -145,14 +140,73 @@ struct EmployerProfileView: View {
                         .background(Color.blue.opacity(0.1))
                         .cornerRadius(12)
                     }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 20)
                 }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 20)
             }
             .navigationTitle("Profile")
         }
         .sheet(isPresented: $showingSettings) {
             EmployerSettingsView()
+        }
+        .onAppear {
+            Task {
+                await loadProfileData()
+            }
+        }
+        .alert("Error", isPresented: .constant(errorMessage != nil)) {
+            Button("OK") {
+                errorMessage = nil
+            }
+        } message: {
+            if let errorMessage = errorMessage {
+                Text(errorMessage)
+            }
+        }
+    }
+    
+    private func loadProfileData() async {
+        guard let employerID = appState.uid else {
+            await MainActor.run {
+                errorMessage = "You must be logged in to view profile"
+            }
+            return
+        }
+        
+        await MainActor.run {
+            isLoading = true
+            errorMessage = nil
+        }
+        
+        do {
+            let db = Firestore.firestore()
+            
+            // Load employer data from employers collection
+            let employerDoc = try await db.collection("employers").document(employerID).getDocument()
+            
+            if let data = employerDoc.data() {
+                await MainActor.run {
+                    // Name is stored as "name" in Firestore
+                    name = data["name"] as? String ?? ""
+                    // Address is stored as "address" in Firestore
+                    location = data["address"] as? String ?? ""
+                    // VAT ID is stored as "vatID" in Firestore (empty string if not set or null)
+                    vatID = data["vatID"] as? String ?? ""
+                    // Set isCompany based on whether vatID exists and is not empty
+                    isCompany = !vatID.isEmpty
+                }
+            }
+            
+            await MainActor.run {
+                isLoading = false
+            }
+        } catch {
+            await MainActor.run {
+                isLoading = false
+                errorMessage = "Failed to load profile: \(error.localizedDescription)"
+                print("Error loading profile: \(error.localizedDescription)")
+            }
         }
     }
 }
@@ -165,14 +219,15 @@ struct EmployerSettingsView: View {
         NavigationView {
             List {
                 Section("Account") {
-                    SettingsRow(icon: "building.2.circle", title: "Company Information", color: .blue)
+                    SettingsRow(icon: "", title: "Edit Info", color: .blue)
                     SettingsRow(icon: "lock.circle", title: "Change Password", color: .green)
+                    SettingsRow(icon: "", title: "Add Vat Number", color: .green)
                     SettingsRow(icon: "envelope.circle", title: "Email Settings", color: .orange)
                 }
                 
                 Section("Notifications") {
                     SettingsRow(icon: "bell.circle", title: "Push Notifications", color: .red)
-                    SettingsRow(icon: "mail.circle", title: "Email Notifications", color: .blue)
+                    SettingsRow(icon: "envelope.circle", title: "Email Notifications", color: .blue)
                 }
                 
                 Section("Support") {
