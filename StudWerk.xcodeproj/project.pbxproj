@@ -16,9 +16,22 @@
 		54D9EDBB2F0C696100D589A9 /* StudWerk.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = StudWerk.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		7E64B60F2F104E5900A8F9AB /* Exceptions for "StudWerk" folder in "StudWerk" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Employer/EmployerManager.swift,
+			);
+			target = 54D9EDBA2F0C696100D589A9 /* StudWerk */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		54D9EDBD2F0C696100D589A9 /* StudWerk */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				7E64B60F2F104E5900A8F9AB /* Exceptions for "StudWerk" folder in "StudWerk" target */,
+			);
 			path = StudWerk;
 			sourceTree = "<group>";
 		};
