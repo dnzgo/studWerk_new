@@ -279,7 +279,7 @@ final class JobManager {
         
         guard let data = document.data(),
               document.exists,
-              let companyName = data["companyName"] as? String else {
+              let companyName = data["name"] as? String else {
             return nil
         }
         
