@@ -69,32 +69,28 @@ struct EmployerHomeView: View {
                         }
                         .padding(.horizontal, 20)
                         
-                        ScrollView(.vertical, showsIndicators: false) {
-                            VStack(spacing: 16) {
-                                if recentApplications.isEmpty {
-                                    VStack(spacing: 16) {
-                                        Image(systemName: "doc.text")
-                                            .font(.system(size: 50))
-                                            .foregroundColor(.secondary)
-                                        Text("No recent applications")
-                                            .font(.headline)
-                                            .foregroundColor(.secondary)
-                                        Text("Applications will appear here when students apply to your jobs")
-                                            .font(.subheadline)
-                                            .foregroundColor(.secondary)
-                                            .multilineTextAlignment(.center)
-                                    }
-                                    .padding(.top, 40)
-                                } else {
-                                    ForEach(recentApplications, id: \.id) { application in
-                                        ApplicationSummaryCard(
-                                            application: application
-                                        )
-                                    }
+                        VStack(spacing: 16) {
+                            if recentApplications.isEmpty {
+                                VStack(spacing: 16) {
+                                    Image(systemName: "doc.text")
+                                        .font(.system(size: 50))
+                                        .foregroundColor(.secondary)
+                                    Text("No recent applications")
+                                        .font(.headline)
+                                        .foregroundColor(.secondary)
+                                    Text("Applications will appear here when students apply to your jobs")
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                        .multilineTextAlignment(.center)
+                                }
+                                .padding(.top, 40)
+                            } else {
+                                ForEach(recentApplications, id: \.id) { application in
+                                    ApplicationSummaryCard(application: application)
                                 }
                             }
-                            .padding(.horizontal, 20)
                         }
+                        .padding(.horizontal, 20)
                     }
                     
                     Spacer()
