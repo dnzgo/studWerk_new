@@ -12,6 +12,7 @@ import Combine
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var appState: AppState
+    @StateObject private var languageManager = LanguageManager.shared
     
     @State private var showingEditInfo = false
     @State private var showingPushNotifications = false
@@ -28,52 +29,93 @@ struct SettingsView: View {
     var body: some View {
         NavigationView {
             List {
-                Section("Account") {
+                Section(languageManager.localizedString(for: "settings.language")) {
+                    Picker(languageManager.localizedString(for: "settings.language"), selection: $languageManager.currentLanguage) {
+                        ForEach(AppLanguage.allCases, id: \.self) { language in
+                            Text(language.displayName).tag(language)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                }
+                
+                Section(languageManager.localizedString(for: "settings.account")) {
                     Button(action: {
                         loadCurrentData()
                         showingEditInfo = true
                     }) {
-                        SettingsRow(icon: "person.circle", title: "Update Info", color: .blue)
+                        SettingsRow(
+                            icon: "person.circle",
+                            title: languageManager.localizedString(for: "settings.updateInfo"),
+                            color: .blue
+                        )
                     }
                     
-                    SettingsRow(icon: "lock.circle", title: "Change Password", color: .green)
+                    SettingsRow(
+                        icon: "lock.circle",
+                        title: languageManager.localizedString(for: "settings.changePassword"),
+                        color: .green
+                    )
                 }
                 
-                Section("Notifications") {
+                Section(languageManager.localizedString(for: "settings.notifications")) {
                     Button(action: {
                         showingPushNotifications = true
                     }) {
-                        SettingsRow(icon: "bell.circle", title: "Push Notifications", color: .red)
+                        SettingsRow(
+                            icon: "bell.circle",
+                            title: languageManager.localizedString(for: "settings.pushNotifications"),
+                            color: .red
+                        )
                     }
                     
-                    SettingsRow(icon: "mail.circle", title: "Email Notifications", color: .blue)
+                    SettingsRow(
+                        icon: "mail.circle",
+                        title: languageManager.localizedString(for: "settings.emailNotifications"),
+                        color: .blue
+                    )
                 }
                 
-                Section("Privacy") {
+                Section(languageManager.localizedString(for: "settings.privacy")) {
                     Button(action: {
                         showingPrivacySettings = true
                     }) {
-                        SettingsRow(icon: "eye.circle", title: "Privacy Policy", color: .purple)
+                        SettingsRow(
+                            icon: "eye.circle",
+                            title: languageManager.localizedString(for: "settings.privacyPolicy"),
+                            color: .purple
+                        )
                     }
                     
                     Button(action: {
                         showingDataProtection = true
                     }) {
-                        SettingsRow(icon: "hand.raised.circle", title: "Data Protection", color: .gray)
+                        SettingsRow(
+                            icon: "hand.raised.circle",
+                            title: languageManager.localizedString(for: "settings.dataProtection"),
+                            color: .gray
+                        )
                     }
                 }
                 
-                Section("Support") {
+                Section(languageManager.localizedString(for: "settings.support")) {
                     Button(action: {
                         showingHelpSupport = true
                     }) {
-                        SettingsRow(icon: "questionmark.circle", title: "Help & Support", color: .blue)
+                        SettingsRow(
+                            icon: "questionmark.circle",
+                            title: languageManager.localizedString(for: "settings.helpSupport"),
+                            color: .blue
+                        )
                     }
                     
                     Button(action: {
                         showingAbout = true
                     }) {
-                        SettingsRow(icon: "info.circle", title: "About", color: .gray)
+                        SettingsRow(
+                            icon: "info.circle",
+                            title: languageManager.localizedString(for: "settings.about"),
+                            color: .gray
+                        )
                     }
                 }
                 
@@ -86,7 +128,7 @@ struct SettingsView: View {
                                 .foregroundColor(.red)
                                 .frame(width: 24)
                             
-                            Text("Log Out")
+                            Text(languageManager.localizedString(for: "settings.logOut"))
                                 .font(.subheadline)
                                 .foregroundColor(.red)
                             
@@ -96,10 +138,10 @@ struct SettingsView: View {
                     }
                 }
             }
-            .navigationTitle("Settings")
+            .navigationTitle(languageManager.localizedString(for: "settings.title"))
             .navigationBarTitleDisplayMode(.inline)
             .navigationBarItems(
-                trailing: Button("Done") {
+                trailing: Button(languageManager.localizedString(for: "settings.done")) {
                     dismiss()
                 }
             )

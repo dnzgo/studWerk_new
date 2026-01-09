@@ -122,7 +122,7 @@ final class EmployerJobsViewModel: ObservableObject {
         case .completed:
             status = .completed
         case .filled:
-            status = .expired
+            status = .filled
         }
         
         let appCount = applicationCounts[job.id] ?? 0

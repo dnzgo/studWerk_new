@@ -103,6 +103,8 @@
 			knownRegions = (
 				en,
 				Base,
+				de,
+				tr,
 			);
 			mainGroup = 54D9EDB22F0C696100D589A9;
 			minimizedProjectReferenceProxies = 1;
@@ -138,6 +140,9 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXVariantGroup section */
+/* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
 		54D9EDC42F0C696200D589A9 /* Debug */ = {

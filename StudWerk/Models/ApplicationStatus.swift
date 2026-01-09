@@ -12,12 +12,14 @@ enum ApplicationStatus: String, CaseIterable, Codable {
     case pending = "Pending"
     case accepted = "Accepted"
     case rejected = "Rejected"
+    case completed = "Completed"
     
     var displayName: String {
         switch self {
         case .pending: return "Pending"
         case .accepted: return "Accepted"
         case .rejected: return "Rejected"
+        case .completed: return "Completed"
         }
     }
     
@@ -26,6 +28,7 @@ enum ApplicationStatus: String, CaseIterable, Codable {
         case .pending: return .orange
         case .accepted: return .green
         case .rejected: return .red
+        case .completed: return .blue
         }
     }
 }

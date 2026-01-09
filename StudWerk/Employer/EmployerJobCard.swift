@@ -159,6 +159,7 @@ enum EmployerJobDisplayStatus: String, CaseIterable {
     case paused = "Paused"
     case completed = "Completed"
     case expired = "Expired"
+    case filled = "Filled"
     
     var color: Color {
         switch self {
@@ -166,6 +167,7 @@ enum EmployerJobDisplayStatus: String, CaseIterable {
         case .paused: return .orange
         case .completed: return .blue
         case .expired: return .red
+        case .filled: return .yellow
         }
     }
 }

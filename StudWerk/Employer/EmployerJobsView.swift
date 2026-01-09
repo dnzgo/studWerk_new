@@ -16,129 +16,36 @@ struct EmployerJobsView: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
-                // Tab Selector
-                Picker("Status", selection: Binding(
-                    get: { viewModel.selectedTab.rawValue },
-                    set: { viewModel.selectedTab = EmployerJobsTab(rawValue: $0) ?? .active }
-                )) {
-                    Text("Active").tag(0)
-                    Text("Applications").tag(1)
-                    Text("Completed").tag(2)
-                }
-                .pickerStyle(SegmentedPickerStyle())
-                .padding(.horizontal, 20)
-                .padding(.top, 10)
-                .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("NavigateToApplications"))) { _ in
-                    // Switch to Applications tab
-                    viewModel.selectedTab = .applications
-                }
-                
-                // Content
-                ScrollView {
-                    if viewModel.isLoading {
-                        ProgressView()
-                            .padding(.top, 40)
-                    } else {
-                        LazyVStack(spacing: 12) {
-                            if viewModel.selectedTab == .active {
-                                if viewModel.activeJobsList.isEmpty {
-                                    VStack(spacing: 16) {
-                                        Image(systemName: "briefcase")
-                                            .font(.system(size: 50))
-                                            .foregroundColor(.secondary)
-                                        Text("No active jobs")
-                                            .font(.headline)
-                                            .foregroundColor(.secondary)
-                                        Text("Create a new job to get started")
-                                            .font(.subheadline)
-                                            .foregroundColor(.secondary)
-                                    }
-                                    .padding(.top, 40)
-                                } else {
-                                    ForEach(viewModel.activeJobsList, id: \.id) { employerJob in
-                                        EmployerJobCard(
-                                            job: employerJob,
-                                            originalJob: viewModel.jobs.first { $0.id == employerJob.id }
-                                        )
-                                    }
-                                }
-                            } else if viewModel.selectedTab == .applications {
-                                // Applications tab
-                                if viewModel.isLoadingApplications {
-                                    ProgressView()
-                                        .padding(.top, 40)
-                                } else if viewModel.filteredApplications.isEmpty {
-                                    VStack(spacing: 16) {
-                                        Image(systemName: "doc.text")
-                                            .font(.system(size: 50))
-                                            .foregroundColor(.secondary)
-                                        Text("No applications yet")
-                                            .font(.headline)
-                                            .foregroundColor(.secondary)
-                                        Text("Applications will appear here when students apply to your jobs")
-                                            .font(.subheadline)
-                                            .foregroundColor(.secondary)
-                                            .multilineTextAlignment(.center)
-                                    }
-                                    .padding(.top, 40)
-                                } else {
-                                    ForEach(viewModel.filteredApplications, id: \.id) { application in
-                                        EmployerApplicationCard(application: application)
-                                    }
-                                }
-                            } else {
-                                if viewModel.completedJobsList.isEmpty {
-                                    VStack(spacing: 16) {
-                                        Image(systemName: "checkmark.circle")
-                                            .font(.system(size: 50))
-                                            .foregroundColor(.secondary)
-                                        Text("No completed jobs")
-                                            .font(.headline)
-                                            .foregroundColor(.secondary)
-                                    }
-                                    .padding(.top, 40)
-                                } else {
-                                    ForEach(completedJobsList, id: \.id) { employerJob in
-                                        EmployerJobCard(
-                                            job: employerJob,
-                                            originalJob: jobs.first { $0.id == employerJob.id }
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                        .padding(.horizontal, 20)
-                        .padding(.top, 20)
-                    }
-                }
+                tabSelector
+                contentView
             }
             .navigationTitle("My Jobs")
         }
         .task {
-            await loadJobs()
-            await loadApplications()
+            viewModel.employerID = appState.uid ?? ""
+            await viewModel.loadData()
         }
         .refreshable {
-            await loadJobs()
-            await loadApplications()
+            await viewModel.loadData()
         }
-        .onChange(of: selectedTab) { newValue in
-            if newValue == 1 {
+        .onChange(of: viewModel.selectedTab) { newValue in
+            if newValue == .applications {
                 Task {
-                    await loadApplications()
+                    await viewModel.loadApplications()
                 }
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("NavigateToApplications"))) { _ in
+            viewModel.selectedTab = .applications
+        }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ApplicationStatusUpdated"))) { _ in
             Task {
-                await loadApplications()
-                await refreshApplicationCounts()
+                await viewModel.loadApplications()
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("JobStatusUpdated"))) { _ in
             Task {
-                await loadJobs()
-                await loadApplications()
+                await viewModel.loadData()
             }
         }
         .alert("Error", isPresented: Binding(
@@ -151,6 +58,122 @@ struct EmployerJobsView: View {
                 Text(errorMessage)
             }
         }
+    }
+    
+    // MARK: - View Components
+    
+    private var tabSelector: some View {
+        Picker("Status", selection: $viewModel.selectedTab) {
+            Text("Active").tag(EmployerJobsTab.active)
+            Text("Applications").tag(EmployerJobsTab.applications)
+            Text("Completed").tag(EmployerJobsTab.completed)
+        }
+        .pickerStyle(SegmentedPickerStyle())
+        .padding(.horizontal, 20)
+        .padding(.top, 10)
+    }
+    
+    private var contentView: some View {
+        ScrollView {
+            if viewModel.isLoading {
+                ProgressView()
+                    .padding(.top, 40)
+            } else {
+                LazyVStack(spacing: 12) {
+                    tabContent
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 20)
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var tabContent: some View {
+        switch viewModel.selectedTab {
+        case .active:
+            activeJobsContent
+        case .applications:
+            applicationsContent
+        case .completed:
+            completedJobsContent
+        }
+    }
+    
+    @ViewBuilder
+    private var activeJobsContent: some View {
+        if viewModel.activeJobsList.isEmpty {
+            emptyStateView(
+                icon: "briefcase",
+                title: "No active jobs",
+                message: "Create a new job to get started"
+            )
+        } else {
+            ForEach(viewModel.activeJobsList, id: \.id) { employerJob in
+                EmployerJobCard(
+                    job: employerJob,
+                    originalJob: findOriginalJob(for: employerJob.id)
+                )
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var applicationsContent: some View {
+        if viewModel.isLoadingApplications {
+            ProgressView()
+                .padding(.top, 40)
+        } else if viewModel.filteredApplications.isEmpty {
+            emptyStateView(
+                icon: "doc.text",
+                title: "No applications yet",
+                message: "Applications will appear here when students apply to your jobs"
+            )
+        } else {
+            ForEach(viewModel.filteredApplications, id: \.id) { application in
+                EmployerApplicationCard(application: application)
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var completedJobsContent: some View {
+        if viewModel.completedJobsList.isEmpty {
+            emptyStateView(
+                icon: "checkmark.circle",
+                title: "No completed jobs",
+                message: nil
+            )
+        } else {
+            ForEach(viewModel.completedJobsList, id: \.id) { employerJob in
+                EmployerJobCard(
+                    job: employerJob,
+                    originalJob: findOriginalJob(for: employerJob.id)
+                )
+            }
+        }
+    }
+    
+    private func emptyStateView(icon: String, title: String, message: String?) -> some View {
+        VStack(spacing: 16) {
+            Image(systemName: icon)
+                .font(.system(size: 50))
+                .foregroundColor(.secondary)
+            Text(title)
+                .font(.headline)
+                .foregroundColor(.secondary)
+            if let message = message {
+                Text(message)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+        }
+        .padding(.top, 40)
+    }
+    
+    private func findOriginalJob(for jobID: String) -> Job? {
+        viewModel.jobs.first { $0.id == jobID }
     }
 }
 

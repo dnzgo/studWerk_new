@@ -10,6 +10,7 @@ import SwiftUI
 struct StudentPushNotificationsView: View {
     @EnvironmentObject var appState: AppState
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var languageManager = LanguageManager.shared
     
     @State private var pushNotificationsEnabled = false
     @State private var isLoading = false
@@ -21,13 +22,13 @@ struct StudentPushNotificationsView: View {
             ScrollView {
                 VStack(spacing: 24) {
                     VStack(alignment: .leading, spacing: 16) {
-                        Text("Push Notifications")
+                        Text(languageManager.localizedString(for: "pushNotifications.title"))
                             .font(.headline)
                             .fontWeight(.semibold)
                         
                         VStack(alignment: .leading, spacing: 12) {
                             HStack {
-                                Text("Enable Notifications")
+                                Text(languageManager.localizedString(for: "pushNotifications.enable"))
                                     .font(.subheadline)
                                 
                                 Spacer()
@@ -42,7 +43,7 @@ struct StudentPushNotificationsView: View {
                             .background(Color(.systemGray6))
                             .cornerRadius(12)
                             
-                            Text("When enabled, you will receive notifications about your job applications and opportunities.")
+                            Text(languageManager.localizedString(for: "pushNotifications.description"))
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
@@ -53,10 +54,10 @@ struct StudentPushNotificationsView: View {
                 }
                 .padding()
             }
-            .navigationTitle("Push Notifications")
+            .navigationTitle(languageManager.localizedString(for: "pushNotifications.title"))
             .navigationBarTitleDisplayMode(.inline)
             .navigationBarItems(
-                trailing: Button("Done") {
+                trailing: Button(languageManager.localizedString(for: "pushNotifications.done")) {
                     dismiss()
                 }
             )
@@ -65,7 +66,7 @@ struct StudentPushNotificationsView: View {
                     await loadNotificationSettings()
                 }
             }
-            .alert("Error", isPresented: $showingErrorAlert) {
+            .alert(languageManager.localizedString(for: "pushNotifications.error"), isPresented: $showingErrorAlert) {
                 Button("OK") { }
             } message: {
                 Text(errorMessage)
@@ -86,7 +87,8 @@ struct StudentPushNotificationsView: View {
         } catch {
             await MainActor.run {
                 isLoading = false
-                errorMessage = "Failed to load notification settings: \(error.localizedDescription)"
+                let errorFormat = languageManager.localizedString(for: "pushNotifications.loadError")
+                errorMessage = String(format: errorFormat, error.localizedDescription)
                 showingErrorAlert = true
             }
         }
@@ -103,7 +105,8 @@ struct StudentPushNotificationsView: View {
                 )
             } catch {
                 await MainActor.run {
-                    errorMessage = "Failed to update notification settings: \(error.localizedDescription)"
+                    let errorFormat = languageManager.localizedString(for: "pushNotifications.updateError")
+                    errorMessage = String(format: errorFormat, error.localizedDescription)
                     showingErrorAlert = true
                     // Revert toggle
                     pushNotificationsEnabled = !enabled

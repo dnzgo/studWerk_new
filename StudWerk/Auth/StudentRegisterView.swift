@@ -130,7 +130,7 @@ struct StudentRegisterView: View {
             showingAlert = true
             return
         }
-        
+
         let passwordValidation = InputValidator.validatePassword(password)
         if !passwordValidation.isValid {
             alertMessage = passwordValidation.errorMessage ?? "Invalid password"

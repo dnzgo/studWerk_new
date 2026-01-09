@@ -13,6 +13,7 @@ struct PaymentDetailsView: View {
     let monthlyLimit: Double
     
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var languageManager = LanguageManager.shared
     
     var body: some View {
         NavigationView {
@@ -22,11 +23,11 @@ struct PaymentDetailsView: View {
                         .font(.system(size: 60))
                         .foregroundColor(.green)
                     
-                    Text("Payment Ready")
+                    Text(languageManager.localizedString(for: "paymentDetails.paymentReady"))
                         .font(.title2)
                         .fontWeight(.bold)
                     
-                    Text("Your account is set up for receiving payments")
+                    Text(languageManager.localizedString(for: "paymentDetails.accountSetup"))
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
@@ -34,13 +35,13 @@ struct PaymentDetailsView: View {
                 .padding(.top, 40)
                 
                 VStack(alignment: .leading, spacing: 16) {
-                    Text("Payment Information")
+                    Text(languageManager.localizedString(for: "paymentDetails.paymentInformation"))
                         .font(.headline)
                         .fontWeight(.semibold)
                     
                     VStack(spacing: 12) {
                         HStack {
-                            Text("IBAN")
+                            Text(languageManager.localizedString(for: "paymentDetails.iban"))
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                             Spacer()
@@ -50,7 +51,7 @@ struct PaymentDetailsView: View {
                         }
                         
                         HStack {
-                            Text("Current Earnings")
+                            Text(languageManager.localizedString(for: "paymentDetails.currentEarnings"))
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                             Spacer()
@@ -60,7 +61,7 @@ struct PaymentDetailsView: View {
                         }
                         
                         HStack {
-                            Text("Monthly Limit")
+                            Text(languageManager.localizedString(for: "paymentDetails.monthlyLimit"))
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                             Spacer()
@@ -75,7 +76,7 @@ struct PaymentDetailsView: View {
                 }
                 
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Recent Payments")
+                    Text(languageManager.localizedString(for: "paymentDetails.recentPayments"))
                         .font(.headline)
                         .fontWeight(.semibold)
                     
@@ -89,10 +90,10 @@ struct PaymentDetailsView: View {
                 Spacer()
             }
             .padding(.horizontal, 20)
-            .navigationTitle("Payment Details")
+            .navigationTitle(languageManager.localizedString(for: "paymentDetails.title"))
             .navigationBarTitleDisplayMode(.inline)
             .navigationBarItems(
-                trailing: Button("Done") {
+                trailing: Button(languageManager.localizedString(for: "paymentDetails.done")) {
                     dismiss()
                 }
             )

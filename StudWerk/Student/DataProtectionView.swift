@@ -9,52 +9,53 @@ import SwiftUI
 
 struct DataProtectionView: View {
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var languageManager = LanguageManager.shared
     
     var body: some View {
         NavigationView {
             ScrollView {
                 VStack(spacing: 24) {
                     VStack(alignment: .leading, spacing: 16) {
-                        Text("Data Protection")
+                        Text(languageManager.localizedString(for: "dataProtection.title"))
                             .font(.headline)
                             .fontWeight(.semibold)
                         
                         VStack(alignment: .leading, spacing: 16) {
-                            Text("GDPR Compliance")
+                            Text(languageManager.localizedString(for: "dataProtection.gdpr"))
                                 .font(.subheadline)
                                 .fontWeight(.medium)
                             
-                            Text("We are committed to protecting your personal data in accordance with the General Data Protection Regulation (GDPR). This section explains your rights and how we handle your data.")
+                            Text(languageManager.localizedString(for: "dataProtection.gdprDesc"))
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                             
                             Divider()
                             
-                            Text("Your Rights")
+                            Text(languageManager.localizedString(for: "dataProtection.yourRights"))
                                 .font(.subheadline)
                                 .fontWeight(.medium)
                             
-                            Text("You have the right to access, rectify, erase, restrict processing, object to processing, and data portability regarding your personal data. You can exercise these rights by contacting us.")
+                            Text(languageManager.localizedString(for: "dataProtection.yourRightsDesc"))
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                             
                             Divider()
                             
-                            Text("Data Security")
+                            Text(languageManager.localizedString(for: "dataProtection.dataSecurity"))
                                 .font(.subheadline)
                                 .fontWeight(.medium)
                             
-                            Text("We implement technical and organizational measures to ensure a level of security appropriate to the risk, including encryption, access controls, and regular security assessments.")
+                            Text(languageManager.localizedString(for: "dataProtection.dataSecurityDesc"))
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                             
                             Divider()
                             
-                            Text("Data Retention")
+                            Text(languageManager.localizedString(for: "dataProtection.dataRetention"))
                                 .font(.subheadline)
                                 .fontWeight(.medium)
                             
-                            Text("We retain your personal data only for as long as necessary to fulfill the purposes for which it was collected, or as required by law.")
+                            Text(languageManager.localizedString(for: "dataProtection.dataRetentionDesc"))
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                         }
@@ -65,10 +66,10 @@ struct DataProtectionView: View {
                 }
                 .padding()
             }
-            .navigationTitle("Data Protection")
+            .navigationTitle(languageManager.localizedString(for: "dataProtection.title"))
             .navigationBarTitleDisplayMode(.inline)
             .navigationBarItems(
-                trailing: Button("Done") {
+                trailing: Button(languageManager.localizedString(for: "dataProtection.done")) {
                     dismiss()
                 }
             )

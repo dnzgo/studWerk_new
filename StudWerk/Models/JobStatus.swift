@@ -11,12 +11,14 @@ enum JobStatus: String, Codable, CaseIterable {
     case open = "open"
     case closed = "closed"
     case completed = "completed"
+    case filled = "filled"
     
     var displayName: String {
         switch self {
         case .open: return "Open"
         case .closed: return "Closed"
         case .completed: return "Completed"
+        case .filled: return "Filled"
         }
     }
 }

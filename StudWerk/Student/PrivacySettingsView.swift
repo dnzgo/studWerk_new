@@ -9,52 +9,53 @@ import SwiftUI
 
 struct PrivacySettingsView: View {
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var languageManager = LanguageManager.shared
     
     var body: some View {
         NavigationView {
             ScrollView {
                 VStack(spacing: 24) {
                     VStack(alignment: .leading, spacing: 16) {
-                        Text("Privacy Policy")
+                        Text(languageManager.localizedString(for: "privacy.policy"))
                             .font(.headline)
                             .fontWeight(.semibold)
                         
                         VStack(alignment: .leading, spacing: 16) {
-                            Text("Privacy Policy")
+                            Text(languageManager.localizedString(for: "privacy.policy"))
                                 .font(.subheadline)
                                 .fontWeight(.medium)
                             
-                            Text("By using StudWerk, you agree to how we collect, use, and protect your personal information. This privacy policy explains our practices regarding data collection and usage.")
+                            Text(languageManager.localizedString(for: "privacy.intro"))
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                             
                             Divider()
                             
-                            Text("Information We Collect")
+                            Text(languageManager.localizedString(for: "privacy.infoWeCollect"))
                                 .font(.subheadline)
                                 .fontWeight(.medium)
                             
-                            Text("We collect information that you provide directly to us, including your name, email address, phone number, and other profile information necessary for the platform to function.")
+                            Text(languageManager.localizedString(for: "privacy.infoWeCollectDesc"))
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                             
                             Divider()
                             
-                            Text("How We Use Your Information")
+                            Text(languageManager.localizedString(for: "privacy.howWeUse"))
                                 .font(.subheadline)
                                 .fontWeight(.medium)
                             
-                            Text("We use the information we collect to provide, maintain, and improve our services, process transactions, send notifications, and communicate with you about your account.")
+                            Text(languageManager.localizedString(for: "privacy.howWeUseDesc"))
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                             
                             Divider()
                             
-                            Text("Data Protection")
+                            Text(languageManager.localizedString(for: "privacy.dataProtection"))
                                 .font(.subheadline)
                                 .fontWeight(.medium)
                             
-                            Text("We implement appropriate security measures to protect your personal information against unauthorized access, alteration, disclosure, or destruction.")
+                            Text(languageManager.localizedString(for: "privacy.dataProtectionDesc"))
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                         }
@@ -65,10 +66,10 @@ struct PrivacySettingsView: View {
                 }
                 .padding()
             }
-            .navigationTitle("Privacy Settings")
+            .navigationTitle(languageManager.localizedString(for: "privacy.title"))
             .navigationBarTitleDisplayMode(.inline)
             .navigationBarItems(
-                trailing: Button("Done") {
+                trailing: Button(languageManager.localizedString(for: "privacy.done")) {
                     dismiss()
                 }
             )

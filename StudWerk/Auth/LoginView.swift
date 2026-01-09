@@ -135,7 +135,7 @@ struct LoginView: View {
             showingAlert = true
             return
         }
-        
+
         // Validate email format
         let emailValidation = InputValidator.validateEmail(email)
         if !emailValidation.isValid {

@@ -1,0 +1,100 @@
+/* Profile */
+"profile.title" = "Profile";
+"profile.student" = "Student";
+"profile.monthlyEarningsLimit" = "Monthly Earnings Limit";
+"profile.currentEarnings" = "Current Earnings";
+"profile.germanLawLimit" = "German Law Limit";
+"profile.remaining" = "Remaining";
+"profile.percentUsed" = "% used";
+"profile.paymentInformation" = "Payment Information";
+"profile.iban" = "IBAN";
+"profile.readyForPayments" = "Ready for Payments";
+"profile.personalInformation" = "Personal Information";
+"profile.phoneNumber" = "Phone Number";
+"profile.address" = "Address";
+"profile.settings" = "Settings";
+"profile.loading" = "Loading profile...";
+"profile.error" = "Error";
+"profile.errorMessage" = "You must be logged in to view profile";
+"profile.loadError" = "Failed to load profile: %@";
+
+/* Settings */
+"settings.title" = "Settings";
+"settings.language" = "Language";
+"settings.account" = "Account";
+"settings.updateInfo" = "Update Info";
+"settings.changePassword" = "Change Password";
+"settings.notifications" = "Notifications";
+"settings.pushNotifications" = "Push Notifications";
+"settings.emailNotifications" = "Email Notifications";
+"settings.privacy" = "Privacy";
+"settings.privacyPolicy" = "Privacy Policy";
+"settings.dataProtection" = "Data Protection";
+"settings.support" = "Support";
+"settings.helpSupport" = "Help & Support";
+"settings.about" = "About";
+"settings.logOut" = "Log Out";
+"settings.done" = "Done";
+
+/* Edit Info */
+"editInfo.title" = "Edit Info";
+"editInfo.editInformation" = "Edit Information";
+"editInfo.name" = "Name *";
+"editInfo.enterName" = "Enter name";
+"editInfo.phoneNumber" = "Phone Number *";
+"editInfo.enterPhone" = "Enter phone number";
+"editInfo.address" = "Address *";
+"editInfo.enterAddress" = "Enter address";
+"editInfo.iban" = "IBAN *";
+"editInfo.enterIBAN" = "Enter IBAN";
+"editInfo.saveChanges" = "Save Changes";
+"editInfo.cancel" = "Cancel";
+"editInfo.save" = "Save";
+"editInfo.success" = "Success";
+"editInfo.profileUpdated" = "Profile updated successfully";
+"editInfo.error" = "Error";
+"editInfo.mustBeLoggedIn" = "You must be logged in";
+
+/* Push Notifications */
+"pushNotifications.title" = "Push Notifications";
+"pushNotifications.enable" = "Enable Notifications";
+"pushNotifications.description" = "When enabled, you will receive notifications about your job applications and opportunities.";
+"pushNotifications.done" = "Done";
+"pushNotifications.error" = "Error";
+"pushNotifications.loadError" = "Failed to load notification settings: %@";
+"pushNotifications.updateError" = "Failed to update notification settings: %@";
+
+/* Payment Details */
+"paymentDetails.title" = "Payment Details";
+"paymentDetails.paymentReady" = "Payment Ready";
+"paymentDetails.accountSetup" = "Your account is set up for receiving payments";
+"paymentDetails.paymentInformation" = "Payment Information";
+"paymentDetails.iban" = "IBAN";
+"paymentDetails.currentEarnings" = "Current Earnings";
+"paymentDetails.monthlyLimit" = "Monthly Limit";
+"paymentDetails.recentPayments" = "Recent Payments";
+"paymentDetails.done" = "Done";
+
+/* Privacy Settings */
+"privacy.title" = "Privacy Settings";
+"privacy.policy" = "Privacy Policy";
+"privacy.intro" = "By using StudWerk, you agree to how we collect, use, and protect your personal information. This privacy policy explains our practices regarding data collection and usage.";
+"privacy.infoWeCollect" = "Information We Collect";
+"privacy.infoWeCollectDesc" = "We collect information that you provide directly to us, including your name, email address, phone number, and other profile information necessary for the platform to function.";
+"privacy.howWeUse" = "How We Use Your Information";
+"privacy.howWeUseDesc" = "We use the information we collect to provide, maintain, and improve our services, process transactions, send notifications, and communicate with you about your account.";
+"privacy.dataProtection" = "Data Protection";
+"privacy.dataProtectionDesc" = "We implement appropriate security measures to protect your personal information against unauthorized access, alteration, disclosure, or destruction.";
+"privacy.done" = "Done";
+
+/* Data Protection */
+"dataProtection.title" = "Data Protection";
+"dataProtection.gdpr" = "GDPR Compliance";
+"dataProtection.gdprDesc" = "We are committed to protecting your personal data in accordance with the General Data Protection Regulation (GDPR). This section explains your rights and how we handle your data.";
+"dataProtection.yourRights" = "Your Rights";
+"dataProtection.yourRightsDesc" = "You have the right to access, rectify, erase, restrict processing, object to processing, and data portability regarding your personal data. You can exercise these rights by contacting us.";
+"dataProtection.dataSecurity" = "Data Security";
+"dataProtection.dataSecurityDesc" = "We implement technical and organizational measures to ensure a level of security appropriate to the risk, including encryption, access controls, and regular security assessments.";
+"dataProtection.dataRetention" = "Data Retention";
+"dataProtection.dataRetentionDesc" = "We retain your personal data only for as long as necessary to fulfill the purposes for which it was collected, or as required by law.";
+"dataProtection.done" = "Done";

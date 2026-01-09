@@ -92,7 +92,7 @@ struct FeaturedJobCard: View {
         .onAppear {
             if let studentID = appState.uid {
                 viewModel.studentID = studentID
-                Task {
+            Task {
                     await viewModel.checkApplicationStatus()
                     await viewModel.loadCompanyName()
                 }

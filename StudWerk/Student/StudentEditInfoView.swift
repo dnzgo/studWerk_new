@@ -10,6 +10,7 @@ import SwiftUI
 struct StudentEditInfoView: View {
     @EnvironmentObject var appState: AppState
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var languageManager = LanguageManager.shared
     
     @State private var name: String
     @State private var phone: String
@@ -32,47 +33,47 @@ struct StudentEditInfoView: View {
             ScrollView {
                 VStack(spacing: 24) {
                     VStack(alignment: .leading, spacing: 16) {
-                        Text("Edit Information")
+                        Text(languageManager.localizedString(for: "editInfo.editInformation"))
                             .font(.headline)
                             .fontWeight(.semibold)
                         
                         VStack(spacing: 16) {
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("Name *")
+                                Text(languageManager.localizedString(for: "editInfo.name"))
                                     .font(.subheadline)
                                     .fontWeight(.medium)
                                 
-                                TextField("Enter name", text: $name)
+                                TextField(languageManager.localizedString(for: "editInfo.enterName"), text: $name)
                                     .textFieldStyle(RoundedBorderTextFieldStyle())
                                     .textInputAutocapitalization(.words)
                             }
                             
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("Phone Number *")
+                                Text(languageManager.localizedString(for: "editInfo.phoneNumber"))
                                     .font(.subheadline)
                                     .fontWeight(.medium)
                                 
-                                TextField("Enter phone number", text: $phone)
+                                TextField(languageManager.localizedString(for: "editInfo.enterPhone"), text: $phone)
                                     .textFieldStyle(RoundedBorderTextFieldStyle())
                                     .keyboardType(.phonePad)
                             }
                             
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("Address *")
+                                Text(languageManager.localizedString(for: "editInfo.address"))
                                     .font(.subheadline)
                                     .fontWeight(.medium)
                                 
-                                TextField("Enter address", text: $address)
+                                TextField(languageManager.localizedString(for: "editInfo.enterAddress"), text: $address)
                                     .textFieldStyle(RoundedBorderTextFieldStyle())
                                     .textInputAutocapitalization(.words)
                             }
                             
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("IBAN *")
+                                Text(languageManager.localizedString(for: "editInfo.iban"))
                                     .font(.subheadline)
                                     .fontWeight(.medium)
                                 
-                                TextField("Enter IBAN", text: $iban)
+                                TextField(languageManager.localizedString(for: "editInfo.enterIBAN"), text: $iban)
                                     .textFieldStyle(RoundedBorderTextFieldStyle())
                                     .autocapitalization(.allCharacters)
                             }
@@ -88,7 +89,7 @@ struct StudentEditInfoView: View {
                                 ProgressView()
                                     .progressViewStyle(CircularProgressViewStyle(tint: .white))
                             } else {
-                                Text("Save Changes")
+                                Text(languageManager.localizedString(for: "editInfo.saveChanges"))
                                     .fontWeight(.semibold)
                             }
                         }
@@ -102,25 +103,25 @@ struct StudentEditInfoView: View {
                 }
                 .padding()
             }
-            .navigationTitle("Edit Info")
+            .navigationTitle(languageManager.localizedString(for: "editInfo.title"))
             .navigationBarTitleDisplayMode(.inline)
             .navigationBarItems(
-                leading: Button("Cancel") {
+                leading: Button(languageManager.localizedString(for: "editInfo.cancel")) {
                     dismiss()
                 },
-                trailing: Button("Save") {
+                trailing: Button(languageManager.localizedString(for: "editInfo.save")) {
                     updateProfile()
                 }
                 .disabled(!isFormValid || isUpdating)
             )
-            .alert("Success", isPresented: $showingSuccessAlert) {
+            .alert(languageManager.localizedString(for: "editInfo.success"), isPresented: $showingSuccessAlert) {
                 Button("OK") {
                     dismiss()
                 }
             } message: {
-                Text("Profile updated successfully")
+                Text(languageManager.localizedString(for: "editInfo.profileUpdated"))
             }
-            .alert("Error", isPresented: $showingErrorAlert) {
+            .alert(languageManager.localizedString(for: "editInfo.error"), isPresented: $showingErrorAlert) {
                 Button("OK") { }
             } message: {
                 Text(errorMessage)
@@ -134,7 +135,7 @@ struct StudentEditInfoView: View {
     
     private func updateProfile() {
         guard let studentID = appState.uid else {
-            errorMessage = "You must be logged in"
+            errorMessage = languageManager.localizedString(for: "editInfo.mustBeLoggedIn")
             showingErrorAlert = true
             return
         }

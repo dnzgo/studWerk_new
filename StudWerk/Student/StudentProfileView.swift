@@ -11,6 +11,7 @@ import Combine
 
 struct StudentProfileView: View {
     @EnvironmentObject var appState: AppState
+    @StateObject private var languageManager = LanguageManager.shared
     @State private var showingSettings = false
     @State private var currentEarnings = 0.0
     @State private var monthlyLimit = 1100.0
@@ -26,7 +27,7 @@ struct StudentProfileView: View {
         NavigationView {
             ScrollView {
                 if isLoading {
-                    ProgressView("Loading profile...")
+                    ProgressView(languageManager.localizedString(for: "profile.loading"))
                         .padding(.top, 100)
                 } else {
                     VStack(spacing: 24) {
@@ -43,11 +44,11 @@ struct StudentProfileView: View {
                             )
                         
                         VStack(spacing: 4) {
-                            Text(studentName.isEmpty ? "Student" : studentName)
+                            Text(studentName.isEmpty ? languageManager.localizedString(for: "profile.student") : studentName)
                                 .font(.title2)
                                 .fontWeight(.bold)
                             
-                            Text("Student")
+                            Text(languageManager.localizedString(for: "profile.student"))
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                         }
@@ -56,13 +57,13 @@ struct StudentProfileView: View {
                     
                     // Monthly Earnings Limit (German Law)
                     VStack(alignment: .leading, spacing: 16) {
-                        Text("Monthly Earnings Limit")
+                        Text(languageManager.localizedString(for: "profile.monthlyEarningsLimit"))
                             .font(.headline)
                             .fontWeight(.semibold)
                         
                         VStack(spacing: 12) {
                             HStack {
-                                Text("Current Earnings")
+                                Text(languageManager.localizedString(for: "profile.currentEarnings"))
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
                                 Spacer()
@@ -73,7 +74,7 @@ struct StudentProfileView: View {
                             
                             VStack(alignment: .leading, spacing: 8) {
                                 HStack {
-                                    Text("German Law Limit")
+                                    Text(languageManager.localizedString(for: "profile.germanLawLimit"))
                                         .font(.subheadline)
                                         .foregroundColor(.secondary)
                                     Spacer()
@@ -86,11 +87,11 @@ struct StudentProfileView: View {
                                     .progressViewStyle(LinearProgressViewStyle(tint: currentEarnings >= monthlyLimit * 0.8 ? .red : .blue))
                                 
                                 HStack {
-                                    Text("Remaining: €\(String(format: "%.0f", monthlyLimit - currentEarnings))")
+                                    Text("\(languageManager.localizedString(for: "profile.remaining")): €\(String(format: "%.0f", monthlyLimit - currentEarnings))")
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                     Spacer()
-                                    Text("\(String(format: "%.0f", (currentEarnings / monthlyLimit) * 100))% used")
+                                    Text("\(String(format: "%.0f", (currentEarnings / monthlyLimit) * 100))\(languageManager.localizedString(for: "profile.percentUsed"))")
                                         .font(.caption)
                                         .foregroundColor(currentEarnings >= monthlyLimit * 0.8 ? .red : .secondary)
                                 }
@@ -103,13 +104,13 @@ struct StudentProfileView: View {
                     
                     // Payment Information
                     VStack(alignment: .leading, spacing: 16) {
-                        Text("Payment Information")
+                        Text(languageManager.localizedString(for: "profile.paymentInformation"))
                             .font(.headline)
                             .fontWeight(.semibold)
                         
                         VStack(spacing: 12) {
                             HStack {
-                                Text("IBAN")
+                                Text(languageManager.localizedString(for: "profile.iban"))
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
                                 Spacer()
@@ -126,7 +127,7 @@ struct StudentProfileView: View {
                                     Image(systemName: "eurosign.circle.fill")
                                         .foregroundColor(.green)
                                     
-                                    Text("Ready for Payments")
+                                    Text(languageManager.localizedString(for: "profile.readyForPayments"))
                                         .font(.subheadline)
                                         .fontWeight(.medium)
                                         .foregroundColor(.green)
@@ -149,13 +150,13 @@ struct StudentProfileView: View {
                     
                     // Personal Information
                     VStack(alignment: .leading, spacing: 16) {
-                        Text("Personal Information")
+                        Text(languageManager.localizedString(for: "profile.personalInformation"))
                             .font(.headline)
                             .fontWeight(.semibold)
                         
                         VStack(spacing: 12) {
                             HStack {
-                                Text("Phone Number")
+                                Text(languageManager.localizedString(for: "profile.phoneNumber"))
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
                                 Spacer()
@@ -166,7 +167,7 @@ struct StudentProfileView: View {
                             }
                             
                             HStack {
-                                Text("Address")
+                                Text(languageManager.localizedString(for: "profile.address"))
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
                                 Spacer()
@@ -189,7 +190,7 @@ struct StudentProfileView: View {
                             Image(systemName: "gearshape.fill")
                                 .foregroundColor(.blue)
                             
-                            Text("Settings")
+                            Text(languageManager.localizedString(for: "profile.settings"))
                                 .font(.headline)
                                 .foregroundColor(.blue)
                             
@@ -207,7 +208,7 @@ struct StudentProfileView: View {
                     .padding(.bottom, 80)
                 }
             }
-            .navigationTitle("Profile")
+            .navigationTitle(languageManager.localizedString(for: "profile.title"))
             .navigationBarTitleDisplayMode(.large)
         }
         .sheet(isPresented: $showingSettings) {
@@ -226,7 +227,7 @@ struct StudentProfileView: View {
                 await loadProfileData()
             }
         }
-        .alert("Error", isPresented: .constant(errorMessage != nil)) {
+        .alert(languageManager.localizedString(for: "profile.error"), isPresented: .constant(errorMessage != nil)) {
             Button("OK") {
                 errorMessage = nil
             }
@@ -240,7 +241,7 @@ struct StudentProfileView: View {
     private func loadProfileData() async {
         guard let studentID = appState.uid else {
             await MainActor.run {
-                errorMessage = "You must be logged in to view profile"
+                errorMessage = languageManager.localizedString(for: "profile.errorMessage")
             }
             return
         }
@@ -298,7 +299,8 @@ struct StudentProfileView: View {
         } catch {
             await MainActor.run {
                 isLoading = false
-                errorMessage = "Failed to load profile: \(error.localizedDescription)"
+                let errorFormat = languageManager.localizedString(for: "profile.loadError")
+                errorMessage = String(format: errorFormat, error.localizedDescription)
                 print("Error loading profile: \(error.localizedDescription)")
             }
         }

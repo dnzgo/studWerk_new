@@ -1,0 +1,100 @@
+/* Profile */
+"profile.title" = "Profil";
+"profile.student" = "Öğrenci";
+"profile.monthlyEarningsLimit" = "Aylık Kazanç Limiti";
+"profile.currentEarnings" = "Mevcut Kazanç";
+"profile.germanLawLimit" = "Alman Yasası Limiti";
+"profile.remaining" = "Kalan";
+"profile.percentUsed" = "% kullanıldı";
+"profile.paymentInformation" = "Ödeme Bilgileri";
+"profile.iban" = "IBAN";
+"profile.readyForPayments" = "Ödeme İçin Hazır";
+"profile.personalInformation" = "Kişisel Bilgiler";
+"profile.phoneNumber" = "Telefon Numarası";
+"profile.address" = "Adres";
+"profile.settings" = "Ayarlar";
+"profile.loading" = "Profil yükleniyor...";
+"profile.error" = "Hata";
+"profile.errorMessage" = "Profili görüntülemek için giriş yapmalısınız";
+"profile.loadError" = "Profil yüklenemedi: %@";
+
+/* Settings */
+"settings.title" = "Ayarlar";
+"settings.language" = "Dil";
+"settings.account" = "Hesap";
+"settings.updateInfo" = "Bilgileri Güncelle";
+"settings.changePassword" = "Şifre Değiştir";
+"settings.notifications" = "Bildirimler";
+"settings.pushNotifications" = "Push Bildirimleri";
+"settings.emailNotifications" = "E-posta Bildirimleri";
+"settings.privacy" = "Gizlilik";
+"settings.privacyPolicy" = "Gizlilik Politikası";
+"settings.dataProtection" = "Veri Koruma";
+"settings.support" = "Destek";
+"settings.helpSupport" = "Yardım & Destek";
+"settings.about" = "Hakkında";
+"settings.logOut" = "Çıkış Yap";
+"settings.done" = "Tamam";
+
+/* Edit Info */
+"editInfo.title" = "Bilgileri Düzenle";
+"editInfo.editInformation" = "Bilgileri Düzenle";
+"editInfo.name" = "Ad *";
+"editInfo.enterName" = "Ad girin";
+"editInfo.phoneNumber" = "Telefon Numarası *";
+"editInfo.enterPhone" = "Telefon numarası girin";
+"editInfo.address" = "Adres *";
+"editInfo.enterAddress" = "Adres girin";
+"editInfo.iban" = "IBAN *";
+"editInfo.enterIBAN" = "IBAN girin";
+"editInfo.saveChanges" = "Değişiklikleri Kaydet";
+"editInfo.cancel" = "İptal";
+"editInfo.save" = "Kaydet";
+"editInfo.success" = "Başarılı";
+"editInfo.profileUpdated" = "Profil başarıyla güncellendi";
+"editInfo.error" = "Hata";
+"editInfo.mustBeLoggedIn" = "Giriş yapmalısınız";
+
+/* Push Notifications */
+"pushNotifications.title" = "Push Bildirimleri";
+"pushNotifications.enable" = "Bildirimleri Etkinleştir";
+"pushNotifications.description" = "Etkinleştirildiğinde, iş başvurularınız ve fırsatlarınız hakkında bildirimler alacaksınız.";
+"pushNotifications.done" = "Tamam";
+"pushNotifications.error" = "Hata";
+"pushNotifications.loadError" = "Bildirim ayarları yüklenemedi: %@";
+"pushNotifications.updateError" = "Bildirim ayarları güncellenemedi: %@";
+
+/* Payment Details */
+"paymentDetails.title" = "Ödeme Detayları";
+"paymentDetails.paymentReady" = "Ödeme Hazır";
+"paymentDetails.accountSetup" = "Hesabınız ödeme almak için ayarlanmıştır";
+"paymentDetails.paymentInformation" = "Ödeme Bilgileri";
+"paymentDetails.iban" = "IBAN";
+"paymentDetails.currentEarnings" = "Mevcut Kazanç";
+"paymentDetails.monthlyLimit" = "Aylık Limit";
+"paymentDetails.recentPayments" = "Son Ödemeler";
+"paymentDetails.done" = "Tamam";
+
+/* Privacy Settings */
+"privacy.title" = "Gizlilik Ayarları";
+"privacy.policy" = "Gizlilik Politikası";
+"privacy.intro" = "StudWerk'i kullanarak, kişisel bilgilerinizi nasıl topladığımızı, kullandığımızı ve koruduğumuzu kabul edersiniz. Bu gizlilik politikası, veri toplama ve kullanım uygulamalarımızı açıklar.";
+"privacy.infoWeCollect" = "Topladığımız Bilgiler";
+"privacy.infoWeCollectDesc" = "Adınız, e-posta adresiniz, telefon numaranız ve platformun çalışması için gerekli diğer profil bilgileri dahil olmak üzere doğrudan bize sağladığınız bilgileri topluyoruz.";
+"privacy.howWeUse" = "Bilgilerinizi Nasıl Kullanıyoruz";
+"privacy.howWeUseDesc" = "Topladığımız bilgileri hizmetlerimizi sağlamak, sürdürmek ve iyileştirmek, işlemleri işlemek, bildirimler göndermek ve hesabınız hakkında sizinle iletişim kurmak için kullanıyoruz.";
+"privacy.dataProtection" = "Veri Koruma";
+"privacy.dataProtectionDesc" = "Kişisel bilgilerinizi yetkisiz erişim, değiştirme, ifşa veya yok etmeye karşı korumak için uygun güvenlik önlemleri uyguluyoruz.";
+"privacy.done" = "Tamam";
+
+/* Data Protection */
+"dataProtection.title" = "Veri Koruma";
+"dataProtection.gdpr" = "GDPR Uyumluluğu";
+"dataProtection.gdprDesc" = "Genel Veri Koruma Yönetmeliği (GDPR) uyarınca kişisel verilerinizi korumaya kararlıyız. Bu bölüm haklarınızı ve verilerinizi nasıl işlediğimizi açıklar.";
+"dataProtection.yourRights" = "Haklarınız";
+"dataProtection.yourRightsDesc" = "Kişisel verilerinizle ilgili olarak erişim, düzeltme, silme, işlemeyi kısıtlama, işlemeye itiraz etme ve veri taşınabilirliği haklarınız vardır. Bu hakları bize ulaşarak kullanabilirsiniz.";
+"dataProtection.dataSecurity" = "Veri Güvenliği";
+"dataProtection.dataSecurityDesc" = "Şifreleme, erişim kontrolleri ve düzenli güvenlik değerlendirmeleri dahil olmak üzere riske uygun bir güvenlik seviyesi sağlamak için teknik ve organizasyonel önlemler uyguluyoruz.";
+"dataProtection.dataRetention" = "Veri Saklama";
+"dataProtection.dataRetentionDesc" = "Kişisel verilerinizi yalnızca toplandığı amaçları yerine getirmek veya yasal olarak gerekli olduğu sürece saklıyoruz.";
+"dataProtection.done" = "Tamam";

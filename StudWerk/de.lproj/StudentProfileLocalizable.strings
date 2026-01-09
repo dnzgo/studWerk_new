@@ -1,0 +1,100 @@
+/* Profile */
+"profile.title" = "Profil";
+"profile.student" = "Student";
+"profile.monthlyEarningsLimit" = "Monatliches Verdienstlimit";
+"profile.currentEarnings" = "Aktueller Verdienst";
+"profile.germanLawLimit" = "Deutsches Gesetz Limit";
+"profile.remaining" = "Verbleibend";
+"profile.percentUsed" = "% verwendet";
+"profile.paymentInformation" = "Zahlungsinformationen";
+"profile.iban" = "IBAN";
+"profile.readyForPayments" = "Bereit für Zahlungen";
+"profile.personalInformation" = "Persönliche Informationen";
+"profile.phoneNumber" = "Telefonnummer";
+"profile.address" = "Adresse";
+"profile.settings" = "Einstellungen";
+"profile.loading" = "Profil wird geladen...";
+"profile.error" = "Fehler";
+"profile.errorMessage" = "Sie müssen angemeldet sein, um das Profil anzuzeigen";
+"profile.loadError" = "Profil konnte nicht geladen werden: %@";
+
+/* Settings */
+"settings.title" = "Einstellungen";
+"settings.language" = "Sprache";
+"settings.account" = "Konto";
+"settings.updateInfo" = "Informationen aktualisieren";
+"settings.changePassword" = "Passwort ändern";
+"settings.notifications" = "Benachrichtigungen";
+"settings.pushNotifications" = "Push-Benachrichtigungen";
+"settings.emailNotifications" = "E-Mail-Benachrichtigungen";
+"settings.privacy" = "Datenschutz";
+"settings.privacyPolicy" = "Datenschutzrichtlinie";
+"settings.dataProtection" = "Datenschutz";
+"settings.support" = "Unterstützung";
+"settings.helpSupport" = "Hilfe & Support";
+"settings.about" = "Info";
+"settings.logOut" = "Abmelden";
+"settings.done" = "Fertig";
+
+/* Edit Info */
+"editInfo.title" = "Informationen bearbeiten";
+"editInfo.editInformation" = "Informationen bearbeiten";
+"editInfo.name" = "Name *";
+"editInfo.enterName" = "Namen eingeben";
+"editInfo.phoneNumber" = "Telefonnummer *";
+"editInfo.enterPhone" = "Telefonnummer eingeben";
+"editInfo.address" = "Adresse *";
+"editInfo.enterAddress" = "Adresse eingeben";
+"editInfo.iban" = "IBAN *";
+"editInfo.enterIBAN" = "IBAN eingeben";
+"editInfo.saveChanges" = "Änderungen speichern";
+"editInfo.cancel" = "Abbrechen";
+"editInfo.save" = "Speichern";
+"editInfo.success" = "Erfolg";
+"editInfo.profileUpdated" = "Profil erfolgreich aktualisiert";
+"editInfo.error" = "Fehler";
+"editInfo.mustBeLoggedIn" = "Sie müssen angemeldet sein";
+
+/* Push Notifications */
+"pushNotifications.title" = "Push-Benachrichtigungen";
+"pushNotifications.enable" = "Benachrichtigungen aktivieren";
+"pushNotifications.description" = "Wenn aktiviert, erhalten Sie Benachrichtigungen über Ihre Bewerbungen und Möglichkeiten.";
+"pushNotifications.done" = "Fertig";
+"pushNotifications.error" = "Fehler";
+"pushNotifications.loadError" = "Benachrichtigungseinstellungen konnten nicht geladen werden: %@";
+"pushNotifications.updateError" = "Benachrichtigungseinstellungen konnten nicht aktualisiert werden: %@";
+
+/* Payment Details */
+"paymentDetails.title" = "Zahlungsdetails";
+"paymentDetails.paymentReady" = "Zahlung bereit";
+"paymentDetails.accountSetup" = "Ihr Konto ist für den Empfang von Zahlungen eingerichtet";
+"paymentDetails.paymentInformation" = "Zahlungsinformationen";
+"paymentDetails.iban" = "IBAN";
+"paymentDetails.currentEarnings" = "Aktueller Verdienst";
+"paymentDetails.monthlyLimit" = "Monatliches Limit";
+"paymentDetails.recentPayments" = "Letzte Zahlungen";
+"paymentDetails.done" = "Fertig";
+
+/* Privacy Settings */
+"privacy.title" = "Datenschutzeinstellungen";
+"privacy.policy" = "Datenschutzrichtlinie";
+"privacy.intro" = "Durch die Nutzung von StudWerk stimmen Sie zu, wie wir Ihre persönlichen Informationen sammeln, verwenden und schützen. Diese Datenschutzrichtlinie erklärt unsere Praktiken bezüglich Datensammlung und -nutzung.";
+"privacy.infoWeCollect" = "Informationen, die wir sammeln";
+"privacy.infoWeCollectDesc" = "Wir sammeln Informationen, die Sie uns direkt zur Verfügung stellen, einschließlich Ihres Namens, Ihrer E-Mail-Adresse, Telefonnummer und anderen Profilinformationen, die für die Funktion der Plattform erforderlich sind.";
+"privacy.howWeUse" = "Wie wir Ihre Informationen verwenden";
+"privacy.howWeUseDesc" = "Wir verwenden die gesammelten Informationen, um unsere Dienste bereitzustellen, zu warten und zu verbessern, Transaktionen zu verarbeiten, Benachrichtigungen zu senden und mit Ihnen über Ihr Konto zu kommunizieren.";
+"privacy.dataProtection" = "Datenschutz";
+"privacy.dataProtectionDesc" = "Wir implementieren angemessene Sicherheitsmaßnahmen, um Ihre persönlichen Informationen vor unbefugtem Zugriff, Änderung, Offenlegung oder Zerstörung zu schützen.";
+"privacy.done" = "Fertig";
+
+/* Data Protection */
+"dataProtection.title" = "Datenschutz";
+"dataProtection.gdpr" = "DSGVO-Konformität";
+"dataProtection.gdprDesc" = "Wir verpflichten uns, Ihre persönlichen Daten gemäß der Datenschutz-Grundverordnung (DSGVO) zu schützen. Dieser Abschnitt erklärt Ihre Rechte und wie wir mit Ihren Daten umgehen.";
+"dataProtection.yourRights" = "Ihre Rechte";
+"dataProtection.yourRightsDesc" = "Sie haben das Recht auf Zugang, Berichtigung, Löschung, Einschränkung der Verarbeitung, Widerspruch gegen die Verarbeitung und Datenübertragbarkeit bezüglich Ihrer persönlichen Daten. Sie können diese Rechte ausüben, indem Sie uns kontaktieren.";
+"dataProtection.dataSecurity" = "Datensicherheit";
+"dataProtection.dataSecurityDesc" = "Wir implementieren technische und organisatorische Maßnahmen, um ein dem Risiko angemessenes Sicherheitsniveau zu gewährleisten, einschließlich Verschlüsselung, Zugriffskontrollen und regelmäßigen Sicherheitsbewertungen.";
+"dataProtection.dataRetention" = "Datenspeicherung";
+"dataProtection.dataRetentionDesc" = "Wir speichern Ihre persönlichen Daten nur so lange, wie es zur Erfüllung der Zwecke, für die sie erhoben wurden, oder gesetzlich erforderlich ist.";
+"dataProtection.done" = "Fertig";
