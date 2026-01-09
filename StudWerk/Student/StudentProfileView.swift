@@ -7,6 +7,7 @@
 
 import SwiftUI
 import FirebaseFirestore
+import Combine
 
 struct StudentProfileView: View {
     @EnvironmentObject var appState: AppState
@@ -14,6 +15,7 @@ struct StudentProfileView: View {
     @State private var currentEarnings = 0.0
     @State private var monthlyLimit = 1100.0
     @State private var iban = ""
+    @State private var phone = ""
     @State private var address = ""
     @State private var showingPaymentDetails = false
     @State private var studentName = ""
@@ -153,11 +155,11 @@ struct StudentProfileView: View {
                         
                         VStack(spacing: 12) {
                             HStack {
-                                Text("IBAN")
+                                Text("Phone Number")
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
                                 Spacer()
-                                Text(iban)
+                                Text(phone)
                                     .font(.subheadline)
                                     .fontWeight(.medium)
                                     .multilineTextAlignment(.trailing)
@@ -219,6 +221,11 @@ struct StudentProfileView: View {
                 await loadProfileData()
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("StudentProfileUpdated"))) { _ in
+            Task {
+                await loadProfileData()
+            }
+        }
         .alert("Error", isPresented: .constant(errorMessage != nil)) {
             Button("OK") {
                 errorMessage = nil
@@ -253,23 +260,39 @@ struct StudentProfileView: View {
                 await MainActor.run {
                     studentName = data["name"] as? String ?? ""
                     iban = data["iban"] as? String ?? ""
+                    address = data["address"] as? String ?? ""
+                    phone = data["phone"] as? String ?? ""
                 }
             }
             
-            // Calculate earnings from completed applications
+            // Calculate monthly earnings from completed applications in current month only
             let applications = try await ApplicationManager.shared.fetchApplicationsByStudent(studentID: studentID, status: .completed)
             
-            let earnings = applications.reduce(0.0) { total, app in
-                // Extract payment amount from string like "€150" or "150"
-                let paymentString = app.jobPayment
-                let numbers = paymentString.components(separatedBy: CharacterSet.decimalDigits.inverted)
-                    .compactMap { Double($0) }
-                let amount = numbers.first ?? 0.0
-                return total + amount
-            }
+            // Get current month's start and end dates
+            let calendar = Calendar.current
+            let now = Date()
+            let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: now))!
+            let nextMonth = calendar.date(byAdding: DateComponents(month: 1), to: startOfMonth)!
+            let endOfMonth = calendar.date(byAdding: DateComponents(second: -1), to: nextMonth)!
+            
+            // Filter applications from current month and calculate earnings
+            let monthlyEarnings = applications
+                .filter { app in
+                    // Check if jobDate is within current month (1st to last day)
+                    let jobDate = app.jobDate
+                    return jobDate >= startOfMonth && jobDate <= endOfMonth
+                }
+                .reduce(0.0) { total, app in
+                    // Extract payment amount from string like "€150" or "150"
+                    let paymentString = app.jobPayment
+                    let numbers = paymentString.components(separatedBy: CharacterSet.decimalDigits.inverted)
+                        .compactMap { Double($0) }
+                    let amount = numbers.first ?? 0.0
+                    return total + amount
+                }
             
             await MainActor.run {
-                currentEarnings = earnings
+                currentEarnings = monthlyEarnings
                 isLoading = false
             }
         } catch {

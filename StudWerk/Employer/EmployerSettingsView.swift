@@ -1,29 +1,27 @@
 //
-//  SettingsView.swift
+//  EmployerSettingsView.swift
 //  StudWerk
 //
-//  Created by Deniz Gözcü on 07.01.26.
+//  Created by Deniz Gözcü on 09.01.26.
 //
 
 import SwiftUI
 import FirebaseFirestore
-import Combine
 
-struct SettingsView: View {
+struct EmployerSettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var appState: AppState
     
     @State private var showingEditInfo = false
+    @State private var showingEditVAT = false
     @State private var showingPushNotifications = false
-    @State private var showingPrivacySettings = false
-    @State private var showingDataProtection = false
     @State private var showingHelpSupport = false
     @State private var showingAbout = false
     
     @State private var currentName = ""
     @State private var currentPhone = ""
     @State private var currentAddress = ""
-    @State private var currentIBAN = ""
+    @State private var currentVATID = ""
     
     var body: some View {
         NavigationView {
@@ -33,10 +31,17 @@ struct SettingsView: View {
                         loadCurrentData()
                         showingEditInfo = true
                     }) {
-                        SettingsRow(icon: "person.circle", title: "Update Info", color: .blue)
+                        SettingsRow(icon: "person.circle", title: "Edit Info", color: .blue)
                     }
                     
                     SettingsRow(icon: "lock.circle", title: "Change Password", color: .green)
+                    
+                    Button(action: {
+                        loadCurrentData()
+                        showingEditVAT = true
+                    }) {
+                        SettingsRow(icon: "number.circle", title: "Add VAT Number", color: .green)
+                    }
                 }
                 
                 Section("Notifications") {
@@ -46,21 +51,7 @@ struct SettingsView: View {
                         SettingsRow(icon: "bell.circle", title: "Push Notifications", color: .red)
                     }
                     
-                    SettingsRow(icon: "mail.circle", title: "Email Notifications", color: .blue)
-                }
-                
-                Section("Privacy") {
-                    Button(action: {
-                        showingPrivacySettings = true
-                    }) {
-                        SettingsRow(icon: "eye.circle", title: "Privacy Policy", color: .purple)
-                    }
-                    
-                    Button(action: {
-                        showingDataProtection = true
-                    }) {
-                        SettingsRow(icon: "hand.raised.circle", title: "Data Protection", color: .gray)
-                    }
+                    SettingsRow(icon: "envelope.circle", title: "Email Notifications", color: .blue)
                 }
                 
                 Section("Support") {
@@ -104,19 +95,15 @@ struct SettingsView: View {
                 }
             )
             .sheet(isPresented: $showingEditInfo) {
-                StudentEditInfoView(name: currentName, phone: currentPhone, address: currentAddress, iban: currentIBAN)
+                EditInfoView(name: currentName, phone: currentPhone, address: currentAddress)
+                    .environmentObject(appState)
+            }
+            .sheet(isPresented: $showingEditVAT) {
+                EditVATView(vatID: currentVATID)
                     .environmentObject(appState)
             }
             .sheet(isPresented: $showingPushNotifications) {
-                StudentPushNotificationsView()
-                    .environmentObject(appState)
-            }
-            .sheet(isPresented: $showingPrivacySettings) {
-                PrivacySettingsView()
-                    .environmentObject(appState)
-            }
-            .sheet(isPresented: $showingDataProtection) {
-                DataProtectionView()
+                PushNotificationsView()
                     .environmentObject(appState)
             }
             .sheet(isPresented: $showingHelpSupport) {
@@ -128,26 +115,26 @@ struct SettingsView: View {
             .onAppear {
                 loadCurrentData()
             }
-            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("StudentProfileUpdated"))) { _ in
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("EmployerProfileUpdated"))) { _ in
                 loadCurrentData()
             }
         }
     }
     
     private func loadCurrentData() {
-        guard let studentID = appState.uid else { return }
+        guard let employerID = appState.uid else { return }
         
         Task {
             do {
                 let db = Firestore.firestore()
-                let studentDoc = try await db.collection("students").document(studentID).getDocument()
+                let employerDoc = try await db.collection("employers").document(employerID).getDocument()
                 
-                if let data = studentDoc.data() {
+                if let data = employerDoc.data() {
                     await MainActor.run {
                         currentName = data["name"] as? String ?? ""
                         currentPhone = data["phone"] as? String ?? ""
                         currentAddress = data["address"] as? String ?? ""
-                        currentIBAN = data["iban"] as? String ?? ""
+                        currentVATID = data["vatID"] as? String ?? ""
                     }
                 }
             } catch {
@@ -167,29 +154,5 @@ struct SettingsView: View {
             appState.logout()
             dismiss()
         }
-    }
-}
-
-struct SettingsRow: View {
-    let icon: String
-    let title: String
-    let color: Color
-    
-    var body: some View {
-        HStack {
-            Image(systemName: icon)
-                .foregroundColor(color)
-                .frame(width: 24)
-            
-            Text(title)
-                .font(.subheadline)
-            
-            Spacer()
-            
-            Image(systemName: "chevron.right")
-                .foregroundColor(.secondary)
-                .font(.caption)
-        }
-        .padding(.vertical, 4)
     }
 }

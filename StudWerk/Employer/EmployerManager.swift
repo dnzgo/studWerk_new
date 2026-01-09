@@ -36,17 +36,4 @@ final class EmployerManager {
         ])
     }
     
-    func updatePushNotificationsEnabled(employerID: String, enabled: Bool) async throws {
-        try await employersRef.document(employerID).updateData([
-            "pushNotificationsEnabled": enabled
-        ])
-    }
-    
-    func fetchPushNotificationsEnabled(employerID: String) async throws -> Bool {
-        let document = try await employersRef.document(employerID).getDocument()
-        guard let data = document.data() else {
-            return false // Default to false if not set
-        }
-        return data["pushNotificationsEnabled"] as? Bool ?? false
-    }
 }

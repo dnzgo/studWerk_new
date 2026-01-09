@@ -65,7 +65,7 @@ struct SearchFiltersView: View {
     }
     
     private func resetFilters() {
-        selectedCategory = "All"
+        selectedCategory = "General"
         selectedDate = Date()
     }
 }

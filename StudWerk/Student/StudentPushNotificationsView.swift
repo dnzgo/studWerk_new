@@ -1,5 +1,5 @@
 //
-//  PushNoficitationView.swift
+//  StudentPushNotificationsView.swift
 //  StudWerk
 //
 //  Created by Emir Yalçınkaya on 8.01.2026.
@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct PushNotificationsView: View {
+struct StudentPushNotificationsView: View {
     @EnvironmentObject var appState: AppState
     @Environment(\.dismiss) private var dismiss
     
@@ -42,7 +42,7 @@ struct PushNotificationsView: View {
                             .background(Color(.systemGray6))
                             .cornerRadius(12)
                             
-                            Text("When enabled, you will receive notifications when a student applies to your job postings.")
+                            Text("When enabled, you will receive notifications about your job applications and opportunities.")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }

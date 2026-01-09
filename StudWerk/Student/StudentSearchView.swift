@@ -185,7 +185,8 @@ struct StudentSearchView: View {
         }
         
         // Filter by category
-        if selectedCategory != "All" {
+        // "General" is not a category - it means show all categories
+        if selectedCategory != "General" && selectedCategory != "All" {
             filtered = filtered.filter { $0.category == selectedCategory }
         }
         
