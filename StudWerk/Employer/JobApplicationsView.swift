@@ -12,17 +12,20 @@ struct JobApplicationsView: View {
     let job: Job
     @EnvironmentObject var appState: AppState
     @Environment(\.dismiss) var dismiss
-    @State private var applications: [Application] = []
-    @State private var isLoading = false
-    @State private var errorMessage: String? = nil
+    @StateObject private var viewModel: JobApplicationsViewModel
+    
+    init(job: Job) {
+        self.job = job
+        _viewModel = StateObject(wrappedValue: JobApplicationsViewModel(jobID: job.id))
+    }
     
     var body: some View {
         ScrollView {
             LazyVStack(spacing: 12) {
-                if isLoading {
+                if viewModel.isLoading {
                     ProgressView()
                         .padding(.top, 40)
-                } else if applications.isEmpty {
+                } else if viewModel.applications.isEmpty {
                     VStack(spacing: 16) {
                         Image(systemName: "doc.text")
                             .font(.system(size: 50))
@@ -37,7 +40,7 @@ struct JobApplicationsView: View {
                     }
                     .padding(.top, 40)
                 } else {
-                    ForEach(applications, id: \.id) { application in
+                    ForEach(viewModel.applications, id: \.id) { application in
                         EmployerApplicationCard(application: application)
                     }
                 }
@@ -55,50 +58,24 @@ struct JobApplicationsView: View {
             }
         }
         .task {
-            await loadApplications()
+            await viewModel.loadApplications()
         }
         .refreshable {
-            await loadApplications()
+            await viewModel.loadApplications()
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ApplicationStatusUpdated"))) { _ in
             Task {
-                await loadApplications()
+                await viewModel.loadApplications()
             }
         }
         .alert("Error", isPresented: Binding(
-            get: { errorMessage != nil },
-            set: { if !$0 { errorMessage = nil } }
+            get: { viewModel.errorMessage != nil },
+            set: { if !$0 { viewModel.errorMessage = nil } }
         )) {
             Button("OK") { }
         } message: {
-            if let errorMessage = errorMessage {
+            if let errorMessage = viewModel.errorMessage {
                 Text(errorMessage)
-            }
-        }
-    }
-    
-    private func loadApplications() async {
-        print("JobApplicationsView: Loading applications for job \(job.id)")
-        await MainActor.run {
-            isLoading = true
-            errorMessage = nil
-        }
-        
-        do {
-            let fetchedApplications = try await ApplicationManager.shared.fetchApplicationsByJob(jobID: job.id)
-            print("JobApplicationsView: Fetched \(fetchedApplications.count) applications")
-            await MainActor.run {
-                self.applications = fetchedApplications
-                isLoading = false
-                errorMessage = nil
-            }
-        } catch {
-            await MainActor.run {
-                isLoading = false
-                let errorDesc = error.localizedDescription
-                errorMessage = "Failed to load applications: \(errorDesc)"
-                print("Error loading applications: \(errorDesc)")
-                print("Full error: \(error)")
             }
         }
     }

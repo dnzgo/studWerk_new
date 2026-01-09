@@ -11,19 +11,16 @@ import FirebaseFirestore
 
 struct EmployerJobsView: View {
     @EnvironmentObject var appState: AppState
-    @State private var selectedTab = 0
-    @State private var jobs: [Job] = []
-    @State private var applications: [Application] = []
-    @State private var applicationCounts: [String: Int] = [:] // jobID -> count
-    @State private var isLoading = false
-    @State private var isLoadingApplications = false
-    @State private var errorMessage: String? = nil
+    @StateObject private var viewModel = EmployerJobsViewModel()
     
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
                 // Tab Selector
-                Picker("Status", selection: $selectedTab) {
+                Picker("Status", selection: Binding(
+                    get: { viewModel.selectedTab.rawValue },
+                    set: { viewModel.selectedTab = EmployerJobsTab(rawValue: $0) ?? .active }
+                )) {
                     Text("Active").tag(0)
                     Text("Applications").tag(1)
                     Text("Completed").tag(2)
@@ -33,18 +30,18 @@ struct EmployerJobsView: View {
                 .padding(.top, 10)
                 .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("NavigateToApplications"))) { _ in
                     // Switch to Applications tab
-                    selectedTab = 1
+                    viewModel.selectedTab = .applications
                 }
                 
                 // Content
                 ScrollView {
-                    if isLoading {
+                    if viewModel.isLoading {
                         ProgressView()
                             .padding(.top, 40)
                     } else {
                         LazyVStack(spacing: 12) {
-                            if selectedTab == 0 {
-                                if activeJobsList.isEmpty {
+                            if viewModel.selectedTab == .active {
+                                if viewModel.activeJobsList.isEmpty {
                                     VStack(spacing: 16) {
                                         Image(systemName: "briefcase")
                                             .font(.system(size: 50))
@@ -58,19 +55,19 @@ struct EmployerJobsView: View {
                                     }
                                     .padding(.top, 40)
                                 } else {
-                                    ForEach(activeJobsList, id: \.id) { employerJob in
+                                    ForEach(viewModel.activeJobsList, id: \.id) { employerJob in
                                         EmployerJobCard(
                                             job: employerJob,
-                                            originalJob: jobs.first { $0.id == employerJob.id }
+                                            originalJob: viewModel.jobs.first { $0.id == employerJob.id }
                                         )
                                     }
                                 }
-                            } else if selectedTab == 1 {
+                            } else if viewModel.selectedTab == .applications {
                                 // Applications tab
-                                if isLoadingApplications {
+                                if viewModel.isLoadingApplications {
                                     ProgressView()
                                         .padding(.top, 40)
-                                } else if applications.isEmpty {
+                                } else if viewModel.filteredApplications.isEmpty {
                                     VStack(spacing: 16) {
                                         Image(systemName: "doc.text")
                                             .font(.system(size: 50))
@@ -85,12 +82,12 @@ struct EmployerJobsView: View {
                                     }
                                     .padding(.top, 40)
                                 } else {
-                                    ForEach(applications, id: \.id) { application in
+                                    ForEach(viewModel.filteredApplications, id: \.id) { application in
                                         EmployerApplicationCard(application: application)
                                     }
                                 }
                             } else {
-                                if completedJobsList.isEmpty {
+                                if viewModel.completedJobsList.isEmpty {
                                     VStack(spacing: 16) {
                                         Image(systemName: "checkmark.circle")
                                             .font(.system(size: 50))
@@ -145,165 +142,14 @@ struct EmployerJobsView: View {
             }
         }
         .alert("Error", isPresented: Binding(
-            get: { errorMessage != nil },
-            set: { if !$0 { errorMessage = nil } }
+            get: { viewModel.errorMessage != nil },
+            set: { if !$0 { viewModel.errorMessage = nil } }
         )) {
             Button("OK") { }
         } message: {
-            if let errorMessage = errorMessage {
+            if let errorMessage = viewModel.errorMessage {
                 Text(errorMessage)
             }
-        }
-    }
-    
-    private var activeJobsList: [EmployerJob] {
-        jobs.filter { job in
-            job.status == "open" || job.status == "active"
-        }
-        .map { job in
-            convertToEmployerJob(job)
-        }
-    }
-    
-    private var completedJobsList: [EmployerJob] {
-        jobs.filter { job in
-            job.status == "completed" || job.status == "closed"
-        }
-        .map { job in
-            convertToEmployerJob(job)
-        }
-    }
-    
-    private func convertToEmployerJob(_ job: Job) -> EmployerJob {
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateStyle = .medium
-        dateFormatter.timeStyle = .none
-        
-        let status: JobStatus
-        switch job.status.lowercased() {
-        case "open", "active":
-            status = .active
-        case "paused":
-            status = .paused
-        case "completed", "closed":
-            status = .completed
-        case "expired":
-            status = .expired
-        default:
-            status = .active
-        }
-        
-        let appCount = applicationCounts[job.id] ?? 0
-        
-        return EmployerJob(
-            id: job.id,
-            position: job.jobTitle,
-            category: job.category,
-            pay: job.pay,
-            date: dateFormatter.string(from: job.date),
-            location: job.location,
-            applications: appCount,
-            description: job.jobDescription,
-            status: status
-        )
-    }
-    
-    private func loadJobs() async {
-        guard let employerID = appState.uid else {
-            print("EmployerJobsView: No employerID found in appState")
-            await MainActor.run {
-                errorMessage = "No employer ID found. Please log in again."
-            }
-            return
-        }
-        
-        print("EmployerJobsView: Loading jobs for employerID: \(employerID)")
-        await MainActor.run {
-            isLoading = true
-            errorMessage = nil
-        }
-        
-        do {
-            let fetchedJobs = try await JobManager.shared.fetchJobsByEmployer(employerID: employerID)
-            print("EmployerJobsView: Fetched \(fetchedJobs.count) jobs")
-            
-            // Load application counts for all jobs
-            var counts: [String: Int] = [:]
-            for job in fetchedJobs {
-                do {
-                    let count = try await ApplicationManager.shared.countApplicationsByJob(jobID: job.id)
-                    counts[job.id] = count
-                } catch {
-                    print("Error counting applications for job \(job.id): \(error.localizedDescription)")
-                    counts[job.id] = 0
-                }
-            }
-            
-            await MainActor.run {
-                self.jobs = fetchedJobs
-                self.applicationCounts = counts
-                isLoading = false
-                errorMessage = nil
-            }
-        } catch {
-            await MainActor.run {
-                isLoading = false
-                let errorDesc = error.localizedDescription
-                errorMessage = "Failed to load jobs: \(errorDesc)"
-                print("Error loading jobs: \(errorDesc)")
-                print("Full error: \(error)")
-            }
-        }
-    }
-    
-    private func loadApplications() async {
-        guard let employerID = appState.uid else {
-            print("EmployerJobsView: No employerID found for loading applications")
-            return
-        }
-        
-        print("EmployerJobsView: Loading applications for employerID: \(employerID)")
-        await MainActor.run {
-            isLoadingApplications = true
-        }
-        
-        do {
-            let fetchedApplications = try await ApplicationManager.shared.fetchApplicationsByEmployer(employerID: employerID)
-            print("EmployerJobsView: Fetched \(fetchedApplications.count) applications")
-            
-            // Filter out applications from completed jobs
-            let completedJobIDs = Set(jobs.filter { $0.status == "completed" || $0.status == "closed" }.map { $0.id })
-            let filteredApplications = fetchedApplications.filter { !completedJobIDs.contains($0.jobID) }
-            
-            print("EmployerJobsView: Filtered to \(filteredApplications.count) applications (excluding completed jobs)")
-            await MainActor.run {
-                self.applications = filteredApplications
-                isLoadingApplications = false
-            }
-        } catch {
-            await MainActor.run {
-                isLoadingApplications = false
-                let errorDesc = error.localizedDescription
-                print("Error loading applications: \(errorDesc)")
-                print("Full error: \(error)")
-            }
-        }
-    }
-    
-    private func refreshApplicationCounts() async {
-        var counts: [String: Int] = [:]
-        for job in jobs {
-            do {
-                let count = try await ApplicationManager.shared.countApplicationsByJob(jobID: job.id)
-                counts[job.id] = count
-            } catch {
-                print("Error counting applications for job \(job.id): \(error.localizedDescription)")
-                counts[job.id] = 0
-            }
-        }
-        
-        await MainActor.run {
-            self.applicationCounts = counts
         }
     }
 }

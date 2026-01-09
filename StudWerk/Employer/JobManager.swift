@@ -54,21 +54,21 @@ final class JobManager {
             "category": category,
             "location": location,
             "createdAt": FieldValue.serverTimestamp(),
-            "status": "open" // or "closed", "filled", etc.
+            "status": JobStatus.open.rawValue
         ]
         
         let docRef = try await jobsRef.addDocument(data: jobData)
         return docRef.documentID
     }
     
-    func fetchJobs(status: String? = "open", limit: Int? = nil) async throws -> [Job] {
-        print("JobManager: Fetching jobs with status: \(status ?? "any"), limit: \(limit?.description ?? "none")")
+    func fetchJobs(status: JobStatus? = .open, limit: Int? = nil) async throws -> [Job] {
+        print("JobManager: Fetching jobs with status: \(status?.rawValue ?? "any"), limit: \(limit?.description ?? "none")")
         
         var query: Query = jobsRef
         
         // Filter by status if provided
         if let status = status {
-            query = query.whereField("status", isEqualTo: status)
+            query = query.whereField("status", isEqualTo: status.rawValue)
         }
         
         // Try to order by createdAt, but if it fails (index issue), we'll sort in memory
@@ -87,7 +87,7 @@ final class JobManager {
             print("JobManager: OrderBy failed, fetching without order: \(error.localizedDescription)")
             var fallbackQuery: Query = jobsRef
             if let status = status {
-                fallbackQuery = fallbackQuery.whereField("status", isEqualTo: status)
+                fallbackQuery = fallbackQuery.whereField("status", isEqualTo: status.rawValue)
             }
             if let limit = limit {
                 fallbackQuery = fallbackQuery.limit(to: limit)
@@ -198,14 +198,14 @@ final class JobManager {
         )
     }
     
-    func fetchJobsByEmployer(employerID: String, status: String? = nil) async throws -> [Job] {
-        print("JobManager: Fetching jobs for employerID: \(employerID), status: \(status ?? "any")")
+    func fetchJobsByEmployer(employerID: String, status: JobStatus? = nil) async throws -> [Job] {
+        print("JobManager: Fetching jobs for employerID: \(employerID), status: \(status?.rawValue ?? "any")")
         
         var query: Query = jobsRef.whereField("employerID", isEqualTo: employerID)
         
         // Filter by status if provided
         if let status = status {
-            query = query.whereField("status", isEqualTo: status)
+            query = query.whereField("status", isEqualTo: status.rawValue)
         }
         
         // Try to order by createdAt, but if it fails (index issue), we'll sort in memory
@@ -218,7 +218,7 @@ final class JobManager {
             print("JobManager: OrderBy failed, fetching without order: \(error.localizedDescription)")
             var fallbackQuery: Query = jobsRef.whereField("employerID", isEqualTo: employerID)
             if let status = status {
-                fallbackQuery = fallbackQuery.whereField("status", isEqualTo: status)
+                fallbackQuery = fallbackQuery.whereField("status", isEqualTo: status.rawValue)
             }
             snapshot = try await fallbackQuery.getDocuments()
         }
@@ -326,8 +326,8 @@ final class JobManager {
         try await jobsRef.document(jobID).updateData(jobData)
     }
     
-    func updateJobStatus(jobID: String, status: String) async throws {
-        try await jobsRef.document(jobID).updateData(["status": status])
+    func updateJobStatus(jobID: String, status: JobStatus) async throws {
+        try await jobsRef.document(jobID).updateData(["status": status.rawValue])
     }
     
     func deleteJob(jobID: String) async throws {

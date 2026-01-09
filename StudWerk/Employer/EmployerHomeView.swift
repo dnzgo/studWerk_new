@@ -9,9 +9,7 @@ import SwiftUI
 
 struct EmployerHomeView: View {
     @EnvironmentObject var appState: AppState
-    @State private var jobs: [Job] = []
-    @State private var applications: [Application] = []
-    @State private var isLoading = false
+    @StateObject private var viewModel = EmployerHomeViewModel()
     
     var body : some View {
         NavigationView {
@@ -22,26 +20,26 @@ struct EmployerHomeView: View {
                         HStack(spacing : 16) {
                             StatCard(
                                 title: "Active Jobs",
-                                value: "\(activeJobsCount)",
+                                value: "\(viewModel.activeJobsCount)",
                                 color: .blue,
                                 icon: "briefcase.fill")
                             
                             StatCard(
                                 title: "Applications",
-                                value: "\(applicationsCount)",
+                                value: "\(viewModel.applicationsCount)",
                                 color: .green,
                                 icon: "doc.text.fill")
                         }
                         HStack(spacing : 16) {
                             StatCard(
                                 title: "Hired Students",
-                                value: "\(hiredStudentsCount)",
+                                value: "\(viewModel.hiredStudentsCount)",
                                 color: .orange,
                                 icon: "person.2.fill")
                             
                             StatCard(
                                 title: "Total Spend",
-                                value: "€\(totalSpend)",
+                                value: "€\(viewModel.totalSpend)",
                                 color: .purple,
                                 icon: "eurosign.circle.fill")
                         }
@@ -70,7 +68,7 @@ struct EmployerHomeView: View {
                         .padding(.horizontal, 20)
                         
                         VStack(spacing: 16) {
-                            if recentApplications.isEmpty {
+                            if viewModel.recentApplications.isEmpty {
                                 VStack(spacing: 16) {
                                     Image(systemName: "doc.text")
                                         .font(.system(size: 50))
@@ -85,7 +83,7 @@ struct EmployerHomeView: View {
                                 }
                                 .padding(.top, 40)
                             } else {
-                                ForEach(recentApplications, id: \.id) { application in
+                                ForEach(viewModel.recentApplications, id: \.id) { application in
                                     ApplicationSummaryCard(application: application)
                                 }
                             }
@@ -100,92 +98,13 @@ struct EmployerHomeView: View {
             .navigationBarTitleDisplayMode(.large)
         }
         .task {
-            await loadData()
+            if let employerID = appState.uid {
+                viewModel.employerID = employerID
+                await viewModel.loadData()
+            }
         }
         .refreshable {
-            await loadData()
-        }
-    }
-    
-    private var activeJobsCount: Int {
-        jobs.filter { $0.status == "open" || $0.status == "active" }.count
-    }
-    
-    private var applicationsCount: Int {
-        applications.filter { $0.applicationStatus == .pending }.count
-    }
-    
-    private var hiredStudentsCount: Int {
-        applications.filter { $0.applicationStatus == .accepted || $0.applicationStatus == .completed }.count
-    }
-    
-    private var recentApplications: [Application] {
-        // Get the 5 most recent applications
-        return Array(applications
-            .sorted { $0.appliedAt > $1.appliedAt }
-            .prefix(5))
-    }
-    
-    private var totalSpend: String {
-        // Calculate total spend from completed applications only
-        let completed = applications.filter { app in
-            app.applicationStatus == .completed
-        }
-        
-        let total = completed.reduce(0) { total, app in
-            // Extract payment amount from string like "€150" or "150"
-            let paymentString = app.jobPayment
-            let numbers = paymentString.components(separatedBy: CharacterSet.decimalDigits.inverted)
-                .compactMap { Double($0) }
-            let amount = numbers.first ?? 0
-            return total + amount
-        }
-        
-        if total >= 1000 {
-            return String(format: "%.1fK", total / 1000)
-        } else {
-            return String(format: "%.0f", total)
-        }
-    }
-    
-    private func loadData() async {
-        await loadJobs()
-        await loadApplications()
-    }
-    
-    private func loadJobs() async {
-        guard let employerID = appState.uid else {
-            return
-        }
-        
-        isLoading = true
-        
-        do {
-            let fetchedJobs = try await JobManager.shared.fetchJobsByEmployer(employerID: employerID)
-            await MainActor.run {
-                self.jobs = fetchedJobs
-                isLoading = false
-            }
-        } catch {
-            await MainActor.run {
-                isLoading = false
-                print("Error loading jobs: \(error.localizedDescription)")
-            }
-        }
-    }
-    
-    private func loadApplications() async {
-        guard let employerID = appState.uid else {
-            return
-        }
-        
-        do {
-            let fetchedApplications = try await ApplicationManager.shared.fetchApplicationsByEmployer(employerID: employerID)
-            await MainActor.run {
-                self.applications = fetchedApplications
-            }
-        } catch {
-            print("Error loading applications: \(error.localizedDescription)")
+            await viewModel.loadData()
         }
     }
 }
@@ -194,3 +113,4 @@ struct EmployerHomeView: View {
     EmployerHomeView()
         .environmentObject(AppState())
 }
+

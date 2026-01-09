@@ -134,13 +134,13 @@ struct EmployerJob: Identifiable {
     let location: String
     let applications: Int
     let description: String
-    let status: JobStatus
+    let status: EmployerJobDisplayStatus
 }
 
 
 
 struct JobStatusBadge: View {
-    let status: JobStatus
+    let status: EmployerJobDisplayStatus
     
     var body: some View {
         Text(status.rawValue)
@@ -154,7 +154,7 @@ struct JobStatusBadge: View {
     }
 }
 
-enum JobStatus: String, CaseIterable {
+enum EmployerJobDisplayStatus: String, CaseIterable {
     case active = "Active"
     case paused = "Paused"
     case completed = "Completed"

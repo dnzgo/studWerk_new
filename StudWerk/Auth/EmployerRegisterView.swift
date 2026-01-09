@@ -105,16 +105,45 @@ struct EmployerRegisterView: View {
     }
 
     private func registerEmployer() {
-        guard !name.isEmpty, !email.isEmpty, !phone.isEmpty,
-              !companyAddress.isEmpty,
-              !password.isEmpty, !confirmPassword.isEmpty else {
-            alertMessage = "Please fill in all required fields."
+        // Validate all fields
+        let nameValidation = InputValidator.validateName(name)
+        if !nameValidation.isValid {
+            alertMessage = nameValidation.errorMessage ?? "Invalid name"
             showingAlert = true
             return
         }
-
-        guard password == confirmPassword else {
-            alertMessage = "Passwords do not match."
+        
+        let emailValidation = InputValidator.validateEmail(email)
+        if !emailValidation.isValid {
+            alertMessage = emailValidation.errorMessage ?? "Invalid email"
+            showingAlert = true
+            return
+        }
+        
+        let phoneValidation = InputValidator.validatePhone(phone)
+        if !phoneValidation.isValid {
+            alertMessage = phoneValidation.errorMessage ?? "Invalid phone number"
+            showingAlert = true
+            return
+        }
+        
+        let addressValidation = InputValidator.validateAddress(companyAddress)
+        if !addressValidation.isValid {
+            alertMessage = addressValidation.errorMessage ?? "Invalid address"
+            showingAlert = true
+            return
+        }
+        
+        let passwordValidation = InputValidator.validatePassword(password)
+        if !passwordValidation.isValid {
+            alertMessage = passwordValidation.errorMessage ?? "Invalid password"
+            showingAlert = true
+            return
+        }
+        
+        let passwordConfirmationValidation = InputValidator.validatePasswordConfirmation(password, confirmPassword)
+        if !passwordConfirmationValidation.isValid {
+            alertMessage = passwordConfirmationValidation.errorMessage ?? "Passwords do not match"
             showingAlert = true
             return
         }

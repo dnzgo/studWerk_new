@@ -7,6 +7,8 @@
 
 import SwiftUI
 import Combine
+import FirebaseAuth
+import FirebaseFirestore
 
 final class AppState: ObservableObject {
 
@@ -24,6 +26,10 @@ final class AppState: ObservableObject {
     @Published var uid: String? = nil
     @Published var email: String = ""
     @Published var userType: UserType? = nil
+    
+    init() {
+        checkSession()
+    }
 
     func goToRegisterFlow() {
         screen = .userType
@@ -48,5 +54,28 @@ final class AppState: ObservableObject {
         email = ""
         userType = nil
         screen = .login
+    }
+    
+    // Check for existing Firebase Auth session
+    func checkSession() {
+        if let user = Auth.auth().currentUser {
+            Task {
+                await restoreSession(uid: user.uid)
+            }
+        }
+    }
+    
+    private func restoreSession(uid: String) async {
+        do {
+            let result = try await AuthManager.shared.fetchUserType(uid: uid)
+            await MainActor.run {
+                self.loginSuccess(uid: uid, email: result.email, type: result.type)
+            }
+        } catch {
+            // If fetching fails, go to login screen
+            await MainActor.run {
+                screen = .login
+            }
+        }
     }
 }

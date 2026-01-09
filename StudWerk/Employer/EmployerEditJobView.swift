@@ -11,35 +11,11 @@ struct EmployerEditJobView: View {
     let job: Job
     @EnvironmentObject var appState: AppState
     @Environment(\.dismiss) var dismiss
-    
-    @State private var jobTitle: String
-    @State private var jobDescription: String
-    @State private var payment: String
-    @State private var selectedDate: Date
-    @State private var startTime: Date
-    @State private var endTime: Date
-    @State private var selectedCategory: String
-    @State private var location: String
-    @State private var showingSuccessAlert = false
-    @State private var showingErrorAlert = false
-    @State private var errorMessage = ""
-    @State private var isUpdating = false
-    @State private var isDeleting = false
-    @State private var showingDeleteConfirmation = false
-    @State private var showingDeleteSuccessAlert = false
-    
-    let categories = ["General", "Technology", "Retail", "Food Service", "Marketing", "Administration", "Customer Service", "Other"]
+    @StateObject private var viewModel: EmployerEditJobViewModel
     
     init(job: Job) {
         self.job = job
-        _jobTitle = State(initialValue: job.jobTitle)
-        _jobDescription = State(initialValue: job.jobDescription)
-        _payment = State(initialValue: job.payment)
-        _selectedDate = State(initialValue: job.date)
-        _startTime = State(initialValue: job.startTime)
-        _endTime = State(initialValue: job.endTime)
-        _selectedCategory = State(initialValue: job.category)
-        _location = State(initialValue: job.location)
+        _viewModel = StateObject(wrappedValue: EmployerEditJobViewModel(job: job))
     }
     
     var body: some View {
@@ -70,7 +46,7 @@ struct EmployerEditJobView: View {
                                 .font(.subheadline)
                                 .fontWeight(.medium)
                             
-                            TextField("e.g., Software Developer Intern", text: $jobTitle)
+                            TextField("e.g., Software Developer Intern", text: $viewModel.jobTitle)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
                         }
                         
@@ -80,8 +56,8 @@ struct EmployerEditJobView: View {
                                 .font(.subheadline)
                                 .fontWeight(.medium)
                             
-                            Picker("Category", selection: $selectedCategory) {
-                                ForEach(categories, id: \.self) { category in
+                            Picker("Category", selection: $viewModel.selectedCategory) {
+                                ForEach(viewModel.categories, id: \.self) { category in
                                     Text(category).tag(category)
                                 }
                             }
@@ -98,7 +74,7 @@ struct EmployerEditJobView: View {
                                 .font(.subheadline)
                                 .fontWeight(.medium)
                             
-                            TextEditor(text: $jobDescription)
+                            TextEditor(text: $viewModel.jobDescription)
                                 .frame(minHeight: 100)
                                 .padding(8)
                                 .background(Color(.systemGray6))
@@ -125,7 +101,7 @@ struct EmployerEditJobView: View {
                                     .font(.title2)
                                     .foregroundColor(.secondary)
                                 
-                                TextField("50.00", text: $payment)
+                                TextField("50.00", text: $viewModel.payment)
                                     .textFieldStyle(RoundedBorderTextFieldStyle())
                                     .keyboardType(.decimalPad)
                             }
@@ -141,7 +117,7 @@ struct EmployerEditJobView: View {
                                 .font(.subheadline)
                                 .fontWeight(.medium)
                             
-                            DatePicker("Select Date", selection: $selectedDate, displayedComponents: .date)
+                            DatePicker("Select Date", selection: $viewModel.selectedDate, displayedComponents: .date)
                                 .datePickerStyle(CompactDatePickerStyle())
                                 .padding()
                                 .background(Color(.systemGray6))
@@ -155,7 +131,7 @@ struct EmployerEditJobView: View {
                                     .font(.subheadline)
                                     .fontWeight(.medium)
                                 
-                                DatePicker("Start", selection: $startTime, displayedComponents: .hourAndMinute)
+                                DatePicker("Start", selection: $viewModel.startTime, displayedComponents: .hourAndMinute)
                                     .datePickerStyle(CompactDatePickerStyle())
                                     .padding()
                                     .background(Color(.systemGray6))
@@ -167,7 +143,7 @@ struct EmployerEditJobView: View {
                                     .font(.subheadline)
                                     .fontWeight(.medium)
                                 
-                                DatePicker("End", selection: $endTime, displayedComponents: .hourAndMinute)
+                                DatePicker("End", selection: $viewModel.endTime, displayedComponents: .hourAndMinute)
                                     .datePickerStyle(CompactDatePickerStyle())
                                     .padding()
                                     .background(Color(.systemGray6))
@@ -190,7 +166,7 @@ struct EmployerEditJobView: View {
                                 .font(.subheadline)
                                 .fontWeight(.medium)
                             
-                            TextField("e.g., Musterstraße 123, 10115 Berlin", text: $location)
+                            TextField("e.g., Musterstraße 123, 10115 Berlin", text: $viewModel.location)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
                         }
                     }
@@ -198,46 +174,48 @@ struct EmployerEditJobView: View {
                 
                 // Update Job Button
                 Button(action: {
-                    updateJob()
+                    Task {
+                        await viewModel.updateJob()
+                    }
                 }) {
                     HStack {
-                        if isUpdating {
+                        if viewModel.isUpdating {
                             ProgressView()
                                 .progressViewStyle(CircularProgressViewStyle(tint: .white))
                         }
-                        Text(isUpdating ? "Updating..." : "Update Job")
+                        Text(viewModel.isUpdating ? "Updating..." : "Update Job")
                             .font(.headline)
                             .fontWeight(.semibold)
                     }
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .frame(height: 50)
-                    .background(isFormValid && !isUpdating && !isDeleting ? Color.blue : Color.gray)
+                    .background(viewModel.isFormValid && !viewModel.isUpdating && !viewModel.isDeleting ? Color.blue : Color.gray)
                     .cornerRadius(12)
                 }
-                .disabled(!isFormValid || isUpdating || isDeleting)
+                .disabled(!viewModel.isFormValid || viewModel.isUpdating || viewModel.isDeleting)
                 .padding(.horizontal, 20)
                 
                 // Delete Job Button
                 Button(action: {
-                    showingDeleteConfirmation = true
+                    viewModel.showingDeleteConfirmation = true
                 }) {
                     HStack {
-                        if isDeleting {
+                        if viewModel.isDeleting {
                             ProgressView()
                                 .progressViewStyle(CircularProgressViewStyle(tint: .white))
                         }
-                        Text(isDeleting ? "Deleting..." : "Delete Job")
+                        Text(viewModel.isDeleting ? "Deleting..." : "Delete Job")
                             .font(.headline)
                             .fontWeight(.semibold)
                     }
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .frame(height: 50)
-                    .background(isDeleting ? Color.gray : Color.red)
+                    .background(viewModel.isDeleting ? Color.gray : Color.red)
                     .cornerRadius(12)
                 }
-                .disabled(isUpdating || isDeleting)
+                .disabled(viewModel.isUpdating || viewModel.isDeleting)
                 .padding(.horizontal, 20)
                 .padding(.bottom, 20)
             }
@@ -245,99 +223,34 @@ struct EmployerEditJobView: View {
         }
         .navigationTitle("Edit Job")
         .navigationBarTitleDisplayMode(.inline)
-        .alert("Job Updated!", isPresented: $showingSuccessAlert) {
+        .alert("Job Updated!", isPresented: $viewModel.showingSuccessAlert) {
             Button("OK") {
                 dismiss()
             }
         } message: {
             Text("Your job has been successfully updated.")
         }
-        .alert("Error", isPresented: $showingErrorAlert) {
+        .alert("Error", isPresented: $viewModel.showingErrorAlert) {
             Button("OK") { }
         } message: {
-            Text(errorMessage)
+            Text(viewModel.errorMessage)
         }
-        .alert("Delete Job", isPresented: $showingDeleteConfirmation) {
+        .alert("Delete Job", isPresented: $viewModel.showingDeleteConfirmation) {
             Button("Cancel", role: .cancel) { }
             Button("Delete", role: .destructive) {
-                deleteJob()
+                Task {
+                    await viewModel.deleteJob()
+                }
             }
         } message: {
             Text("Are you sure you want to delete this job? This will also delete all related applications. This action cannot be undone.")
         }
-        .alert("Job Deleted", isPresented: $showingDeleteSuccessAlert) {
+        .alert("Job Deleted", isPresented: $viewModel.showingDeleteSuccessAlert) {
             Button("OK") {
                 dismiss()
             }
         } message: {
             Text("The job and all related applications have been deleted.")
-        }
-    }
-    
-    private var isFormValid: Bool {
-        !jobTitle.isEmpty &&
-        !jobDescription.isEmpty &&
-        !payment.isEmpty &&
-        !location.isEmpty
-    }
-    
-    private func updateJob() {
-        isUpdating = true
-        
-        Task {
-            do {
-                try await JobManager.shared.updateJob(
-                    jobID: job.id,
-                    jobTitle: jobTitle,
-                    jobDescription: jobDescription,
-                    payment: payment,
-                    date: selectedDate,
-                    startTime: startTime,
-                    endTime: endTime,
-                    category: selectedCategory,
-                    location: location
-                )
-                
-                await MainActor.run {
-                    isUpdating = false
-                    showingSuccessAlert = true
-                    // Post notification to reload jobs
-                    NotificationCenter.default.post(name: NSNotification.Name("JobStatusUpdated"), object: nil)
-                }
-            } catch {
-                await MainActor.run {
-                    isUpdating = false
-                    errorMessage = error.localizedDescription
-                    showingErrorAlert = true
-                }
-            }
-        }
-    }
-    
-    private func deleteJob() {
-        isDeleting = true
-        
-        Task {
-            do {
-                // First, delete all applications for this job
-                try await ApplicationManager.shared.deleteApplicationsByJob(jobID: job.id)
-                
-                // Then, delete the job itself
-                try await JobManager.shared.deleteJob(jobID: job.id)
-                
-                await MainActor.run {
-                    isDeleting = false
-                    showingDeleteSuccessAlert = true
-                    // Post notification to reload jobs
-                    NotificationCenter.default.post(name: NSNotification.Name("JobStatusUpdated"), object: nil)
-                }
-            } catch {
-                await MainActor.run {
-                    isDeleting = false
-                    errorMessage = error.localizedDescription
-                    showingErrorAlert = true
-                }
-            }
         }
     }
 }

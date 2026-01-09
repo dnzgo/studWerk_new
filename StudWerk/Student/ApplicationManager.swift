@@ -44,7 +44,7 @@ final class ApplicationManager {
         }
         
         // Check if job is still open
-        guard job.status == "open" else {
+        guard job.jobStatus == .open else {
             throw ApplicationError.jobNotAvailable
         }
         
@@ -404,7 +404,7 @@ final class ApplicationManager {
         ])
         
         // Update job status to completed
-        try await JobManager.shared.updateJobStatus(jobID: application.jobID, status: "completed")
+        try await JobManager.shared.updateJobStatus(jobID: application.jobID, status: .completed)
         
         print("ApplicationManager: Completed job and application")
     }

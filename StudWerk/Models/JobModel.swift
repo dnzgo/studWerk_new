@@ -19,7 +19,12 @@ struct Job: Identifiable, Codable {
     let category: String
     let location: String
     let createdAt: Date
-    let status: String
+    let status: String  // JobStatus raw value
+    
+    // Computed property for type-safe status
+    var jobStatus: JobStatus {
+        JobStatus(rawValue: status) ?? .open
+    }
     
     // Computed properties for display
     var company: String { "" } // from employer

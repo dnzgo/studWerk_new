@@ -10,13 +10,12 @@ import SwiftUI
 struct JobCard: View {
     let job: Job
     @EnvironmentObject var appState: AppState
-    @State private var hasApplied = false
-    @State private var isCheckingApplication = false
-    @State private var isApplying = false
-    @State private var showingSuccessAlert = false
-    @State private var showingErrorAlert = false
-    @State private var errorMessage = ""
-    @State private var showingJobDetail = false
+    @StateObject private var viewModel: JobCardViewModel
+    
+    init(job: Job) {
+        self.job = job
+        _viewModel = StateObject(wrappedValue: JobCardViewModel(job: job))
+    }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -68,7 +67,7 @@ struct JobCard: View {
             
             HStack {
                 Button("View Details") {
-                    showingJobDetail = true
+                    viewModel.showingJobDetail = true
                 }
                 .font(.subheadline)
                 .fontWeight(.semibold)
@@ -76,7 +75,7 @@ struct JobCard: View {
                 
                 Spacer()
                 
-                if hasApplied {
+                if viewModel.hasApplied {
                     Button("Applied") {
                         // Already applied
                     }
@@ -89,8 +88,12 @@ struct JobCard: View {
                     .cornerRadius(6)
                     .disabled(true)
                 } else {
-                    Button(action: quickApply) {
-                        if isApplying {
+                    Button(action: {
+                        Task {
+                            await viewModel.quickApply()
+                        }
+                    }) {
+                        if viewModel.isApplying {
                             ProgressView()
                                 .progressViewStyle(CircularProgressViewStyle(tint: .white))
                         } else {
@@ -102,9 +105,9 @@ struct JobCard: View {
                     .foregroundColor(.white)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
-                    .background(isApplying ? Color.blue.opacity(0.6) : Color.blue)
+                    .background(viewModel.isApplying ? Color.blue.opacity(0.6) : Color.blue)
                     .cornerRadius(6)
-                    .disabled(isApplying || isCheckingApplication)
+                    .disabled(viewModel.isApplying || viewModel.isCheckingApplication)
                 }
             }
         }
@@ -112,77 +115,28 @@ struct JobCard: View {
         .background(Color(.systemGray6))
         .cornerRadius(12)
         .onAppear {
-            Task {
-                await checkApplicationStatus()
+            if let studentID = appState.uid {
+                viewModel.studentID = studentID
+                Task {
+                    await viewModel.checkApplicationStatus()
+                }
             }
         }
-        .sheet(isPresented: $showingJobDetail) {
+        .sheet(isPresented: $viewModel.showingJobDetail) {
             NavigationView {
                 JobDetailView(job: job)
                     .environmentObject(appState)
             }
         }
-        .alert("Success", isPresented: $showingSuccessAlert) {
+        .alert("Success", isPresented: $viewModel.showingSuccessAlert) {
             Button("OK") { }
         } message: {
             Text("Your application has been submitted successfully!")
         }
-        .alert("Error", isPresented: $showingErrorAlert) {
+        .alert("Error", isPresented: $viewModel.showingErrorAlert) {
             Button("OK") { }
         } message: {
-            Text(errorMessage)
-        }
-    }
-    
-    private func checkApplicationStatus() async {
-        guard let studentID = appState.uid else {
-            return
-        }
-        
-        await MainActor.run {
-            isCheckingApplication = true
-        }
-        
-        do {
-            let applied = try await ApplicationManager.shared.hasAppliedToJob(jobID: job.id, studentID: studentID)
-            await MainActor.run {
-                hasApplied = applied
-                isCheckingApplication = false
-            }
-        } catch {
-            await MainActor.run {
-                isCheckingApplication = false
-                print("Error checking application status: \(error.localizedDescription)")
-            }
-        }
-    }
-    
-    private func quickApply() {
-        guard let studentID = appState.uid else {
-            errorMessage = "You must be logged in to apply"
-            showingErrorAlert = true
-            return
-        }
-        
-        Task {
-            await MainActor.run {
-                isApplying = true
-            }
-            
-            do {
-                _ = try await ApplicationManager.shared.applyToJob(jobID: job.id, studentID: studentID)
-                await MainActor.run {
-                    hasApplied = true
-                    isApplying = false
-                    showingSuccessAlert = true
-                }
-            } catch {
-                await MainActor.run {
-                    isApplying = false
-                    errorMessage = error.localizedDescription
-                    showingErrorAlert = true
-                }
-            }
+            Text(viewModel.errorMessage)
         }
     }
 }

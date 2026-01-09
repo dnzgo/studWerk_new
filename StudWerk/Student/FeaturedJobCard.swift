@@ -10,16 +10,18 @@ import SwiftUI
 struct FeaturedJobCard: View {
     let job: Job
     @EnvironmentObject var appState: AppState
-    @State private var hasApplied = false
-    @State private var isCheckingApplication = false
-    @State private var showingJobDetail = false
-    @State private var companyName = ""
+    @StateObject private var viewModel: FeaturedJobCardViewModel
+    
+    init(job: Job) {
+        self.job = job
+        _viewModel = StateObject(wrappedValue: FeaturedJobCardViewModel(job: job))
+    }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(companyName.isEmpty ? "Company" : companyName)
+                    Text(viewModel.companyName.isEmpty ? "Company" : viewModel.companyName)
                         .font(.subheadline)
                         .fontWeight(.semibold)
                         .foregroundColor(.blue)
@@ -56,7 +58,7 @@ struct FeaturedJobCard: View {
                 .font(.caption)
                 .foregroundColor(.secondary)
             
-            if hasApplied {
+            if viewModel.hasApplied {
                 Button("Applied") {
                     // Already applied
                 }
@@ -70,7 +72,7 @@ struct FeaturedJobCard: View {
                 .disabled(true)
             } else {
                 Button(action: {
-                    showingJobDetail = true
+                    viewModel.showingJobDetail = true
                 }) {
                     Text("Apply Now")
                 }
@@ -88,51 +90,19 @@ struct FeaturedJobCard: View {
         .cornerRadius(12)
         .frame(width: 280)
         .onAppear {
-            Task {
-                await checkApplicationStatus()
-                await loadCompanyName()
+            if let studentID = appState.uid {
+                viewModel.studentID = studentID
+                Task {
+                    await viewModel.checkApplicationStatus()
+                    await viewModel.loadCompanyName()
+                }
             }
         }
-        .sheet(isPresented: $showingJobDetail) {
+        .sheet(isPresented: $viewModel.showingJobDetail) {
             NavigationView {
                 JobDetailView(job: job)
                     .environmentObject(appState)
             }
-        }
-    }
-    
-    private func checkApplicationStatus() async {
-        guard let studentID = appState.uid else {
-            return
-        }
-        
-        await MainActor.run {
-            isCheckingApplication = true
-        }
-        
-        do {
-            let applied = try await ApplicationManager.shared.hasAppliedToJob(jobID: job.id, studentID: studentID)
-            await MainActor.run {
-                hasApplied = applied
-                isCheckingApplication = false
-            }
-        } catch {
-            await MainActor.run {
-                isCheckingApplication = false
-                print("Error checking application status: \(error.localizedDescription)")
-            }
-        }
-    }
-    
-    private func loadCompanyName() async {
-        do {
-            if let name = try await JobManager.shared.fetchEmployerCompanyName(employerID: job.employerID) {
-                await MainActor.run {
-                    companyName = name
-                }
-            }
-        } catch {
-            print("Error loading company name: \(error.localizedDescription)")
         }
     }
 }

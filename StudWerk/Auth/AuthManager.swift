@@ -115,4 +115,22 @@ final class AuthManager {
     func logout() throws {
         try Auth.auth().signOut()
     }
+    
+    // Fetch user type for existing Firebase Auth session
+    func fetchUserType(uid: String) async throws -> (email: String, type: UserType) {
+        let snapshot = try await usersRef.document(uid).getDocument()
+        
+        guard
+            let data = snapshot.data(),
+            let rawType = data["userType"] as? String,
+            let type = UserType(rawValue: rawType)
+        else {
+            throw NSError(domain: "AuthManager", code: 0, userInfo: [
+                NSLocalizedDescriptionKey: "User profile not found in Firestore."
+            ])
+        }
+        
+        let email = data["email"] as? String ?? ""
+        return (email, type)
+    }
 }

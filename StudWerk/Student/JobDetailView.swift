@@ -11,21 +11,19 @@ struct JobDetailView: View {
     let job: Job
     @EnvironmentObject var appState: AppState
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var viewModel: JobDetailViewModel
     
-    @State private var hasApplied = false
-    @State private var isCheckingApplication = true
-    @State private var isApplying = false
-    @State private var showingSuccessAlert = false
-    @State private var showingErrorAlert = false
-    @State private var errorMessage = ""
-    @State private var companyName = ""
+    init(job: Job) {
+        self.job = job
+        _viewModel = StateObject(wrappedValue: JobDetailViewModel(job: job))
+    }
     
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 // Header
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(companyName.isEmpty ? "Company" : companyName)
+                    Text(viewModel.companyName.isEmpty ? "Company" : viewModel.companyName)
                         .font(.title2)
                         .fontWeight(.bold)
                         .foregroundColor(.blue)
@@ -118,17 +116,21 @@ struct JobDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                if isCheckingApplication {
+                if viewModel.isCheckingApplication {
                     ProgressView()
-                } else if hasApplied {
+                } else if viewModel.hasApplied {
                     Button("Applied") {
                         // Already applied
                     }
                     .disabled(true)
                     .foregroundColor(.green)
                 } else {
-                    Button(action: applyToJob) {
-                        if isApplying {
+                    Button(action: {
+                        Task {
+                            await viewModel.applyToJob()
+                        }
+                    }) {
+                        if viewModel.isApplying {
                             ProgressView()
                                 .progressViewStyle(CircularProgressViewStyle(tint: .white))
                         } else {
@@ -136,93 +138,33 @@ struct JobDetailView: View {
                                 .fontWeight(.semibold)
                         }
                     }
-                    .disabled(isApplying)
+                    .disabled(viewModel.isApplying)
                     .foregroundColor(.white)
                     .padding(.horizontal, 20)
                     .padding(.vertical, 8)
-                    .background(isApplying ? Color.blue.opacity(0.6) : Color.blue)
+                    .background(viewModel.isApplying ? Color.blue.opacity(0.6) : Color.blue)
                     .cornerRadius(8)
                 }
             }
         }
         .task {
-            await checkApplicationStatus()
-            await loadCompanyName()
+            if let studentID = appState.uid {
+                viewModel.studentID = studentID
+                await viewModel.checkApplicationStatus()
+                await viewModel.loadCompanyName()
+            }
         }
-        .alert("Success", isPresented: $showingSuccessAlert) {
+        .alert("Success", isPresented: $viewModel.showingSuccessAlert) {
             Button("OK") {
                 dismiss()
             }
         } message: {
             Text("Your application has been submitted successfully!")
         }
-        .alert("Error", isPresented: $showingErrorAlert) {
+        .alert("Error", isPresented: $viewModel.showingErrorAlert) {
             Button("OK") { }
         } message: {
-            Text(errorMessage)
-        }
-    }
-    
-    private func checkApplicationStatus() async {
-        guard let studentID = appState.uid else {
-            await MainActor.run {
-                isCheckingApplication = false
-            }
-            return
-        }
-        
-        do {
-            let applied = try await ApplicationManager.shared.hasAppliedToJob(jobID: job.id, studentID: studentID)
-            await MainActor.run {
-                hasApplied = applied
-                isCheckingApplication = false
-            }
-        } catch {
-            await MainActor.run {
-                isCheckingApplication = false
-                print("Error checking application status: \(error.localizedDescription)")
-            }
-        }
-    }
-    
-    private func loadCompanyName() async {
-        do {
-            if let name = try await JobManager.shared.fetchEmployerCompanyName(employerID: job.employerID) {
-                await MainActor.run {
-                    companyName = name
-                }
-            }
-        } catch {
-            print("Error loading company name: \(error.localizedDescription)")
-        }
-    }
-    
-    private func applyToJob() {
-        guard let studentID = appState.uid else {
-            errorMessage = "You must be logged in to apply"
-            showingErrorAlert = true
-            return
-        }
-        
-        Task {
-            await MainActor.run {
-                isApplying = true
-            }
-            
-            do {
-                _ = try await ApplicationManager.shared.applyToJob(jobID: job.id, studentID: studentID)
-                await MainActor.run {
-                    hasApplied = true
-                    isApplying = false
-                    showingSuccessAlert = true
-                }
-            } catch {
-                await MainActor.run {
-                    isApplying = false
-                    errorMessage = error.localizedDescription
-                    showingErrorAlert = true
-                }
-            }
+            Text(viewModel.errorMessage)
         }
     }
 }

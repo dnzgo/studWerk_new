@@ -6,29 +6,22 @@
 //
 
 import SwiftUI
-import FirebaseFirestore
 
 struct ApplicationCard: View {
     let application: Application
     @EnvironmentObject var appState: AppState
-    @State private var companyName = ""
-    @State private var isWithdrawing = false
-    @State private var showingWithdrawAlert = false
-    @State private var showingErrorAlert = false
-    @State private var errorMessage = ""
-    @State private var showingJobDetail = false
-    @State private var showingEmployerContact = false
-    @State private var job: Job? = nil
-    @State private var isLoadingJob = false
-    @State private var employerEmail = ""
-    @State private var employerPhone = ""
-    @State private var employerAddress = ""
+    @StateObject private var viewModel: ApplicationCardViewModel
+    
+    init(application: Application) {
+        self.application = application
+        _viewModel = StateObject(wrappedValue: ApplicationCardViewModel(application: application))
+    }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(companyName.isEmpty ? "Company" : companyName)
+                    Text(viewModel.companyName.isEmpty ? "Company" : viewModel.companyName)
                         .font(.subheadline)
                         .fontWeight(.semibold)
                         .foregroundColor(.blue)
@@ -65,8 +58,10 @@ struct ApplicationCard: View {
             
             if application.applicationStatus == .pending {
                 HStack {
-                    Button(action: withdrawApplication) {
-                        if isWithdrawing {
+                    Button(action: {
+                        viewModel.showWithdrawAlert()
+                    }) {
+                        if viewModel.isWithdrawing {
                             ProgressView()
                                 .progressViewStyle(CircularProgressViewStyle(tint: .red))
                         } else {
@@ -76,13 +71,13 @@ struct ApplicationCard: View {
                     .font(.subheadline)
                     .fontWeight(.semibold)
                     .foregroundColor(.red)
-                    .disabled(isWithdrawing)
+                    .disabled(viewModel.isWithdrawing)
                     
                     Spacer()
                     
                     Button("View Details") {
                         Task {
-                            await loadJobAndShowDetail()
+                            await viewModel.loadJobAndShowDetail()
                         }
                     }
                     .font(.subheadline)
@@ -92,7 +87,7 @@ struct ApplicationCard: View {
             } else if application.applicationStatus == .accepted {
                 HStack {
                     Button("Contact Employer") {
-                        showingEmployerContact = true
+                        viewModel.showingEmployerContact = true
                     }
                     .font(.subheadline)
                     .fontWeight(.semibold)
@@ -102,10 +97,10 @@ struct ApplicationCard: View {
                     
                     Button(action: {
                         Task {
-                            await loadJobAndShowDetail()
+                            await viewModel.loadJobAndShowDetail()
                         }
                     }) {
-                        if isLoadingJob {
+                        if viewModel.isLoadingJob {
                             ProgressView()
                                 .progressViewStyle(CircularProgressViewStyle(tint: .green))
                         } else {
@@ -115,7 +110,7 @@ struct ApplicationCard: View {
                     .font(.subheadline)
                     .fontWeight(.semibold)
                     .foregroundColor(.green)
-                    .disabled(isLoadingJob)
+                    .disabled(viewModel.isLoadingJob)
                 }
             } else {
                 HStack {
@@ -123,7 +118,7 @@ struct ApplicationCard: View {
                     
                     Button("View Details") {
                         Task {
-                            await loadJobAndShowDetail()
+                            await viewModel.loadJobAndShowDetail()
                         }
                     }
                     .font(.subheadline)
@@ -137,22 +132,22 @@ struct ApplicationCard: View {
         .cornerRadius(12)
         .onAppear {
             Task {
-                await loadCompanyName()
+                await viewModel.loadCompanyName()
             }
         }
-        .sheet(isPresented: $showingEmployerContact) {
+        .sheet(isPresented: $viewModel.showingEmployerContact) {
             NavigationView {
                 EmployerContactView(
-                    companyName: companyName,
-                    email: employerEmail,
-                    phone: employerPhone,
-                    address: employerAddress
+                    companyName: viewModel.companyName,
+                    email: viewModel.employerEmail,
+                    phone: viewModel.employerPhone,
+                    address: viewModel.employerAddress
                 )
             }
         }
-        .sheet(isPresented: $showingJobDetail) {
+        .sheet(isPresented: $viewModel.showingJobDetail) {
             Group {
-                if let job = job {
+                if let job = viewModel.job {
                     NavigationView {
                         JobDetailView(job: job)
                             .environmentObject(appState)
@@ -170,121 +165,20 @@ struct ApplicationCard: View {
                 }
             }
         }
-        .alert("Withdraw Application", isPresented: $showingWithdrawAlert) {
+        .alert("Withdraw Application", isPresented: $viewModel.showingWithdrawAlert) {
             Button("Cancel", role: .cancel) { }
             Button("Withdraw", role: .destructive) {
                 Task {
-                    await performWithdraw()
+                    await viewModel.performWithdraw()
                 }
             }
         } message: {
             Text("Are you sure you want to withdraw this application?")
         }
-        .alert("Error", isPresented: $showingErrorAlert) {
+        .alert("Error", isPresented: $viewModel.showingErrorAlert) {
             Button("OK") { }
         } message: {
-            Text(errorMessage)
-        }
-    }
-    
-    private func loadCompanyName() async {
-        do {
-            if let name = try await JobManager.shared.fetchEmployerCompanyName(employerID: application.employerID) {
-                await MainActor.run {
-                    companyName = name
-                }
-            }
-            // Also load employer contact info
-            await loadEmployerContact()
-        } catch {
-            print("Error loading company name: \(error.localizedDescription)")
-        }
-    }
-    
-    private func loadEmployerContact() async {
-        do {
-            let db = Firestore.firestore()
-            
-            // Get phone and address from employers collection
-            let employerDoc = try await db.collection("employers").document(application.employerID).getDocument()
-            if let employerData = employerDoc.data() {
-                await MainActor.run {
-                    employerPhone = employerData["phone"] as? String ?? ""
-                    employerAddress = employerData["address"] as? String ?? ""
-                }
-            }
-            
-            // Get email from users collection
-            let userDoc = try await db.collection("users").document(application.employerID).getDocument()
-            if let userData = userDoc.data() {
-                await MainActor.run {
-                    employerEmail = userData["email"] as? String ?? ""
-                }
-            }
-            
-            print("Loaded employer contact - Email: \(employerEmail), Phone: \(employerPhone), Address: \(employerAddress)")
-        } catch {
-            print("Error loading employer contact: \(error.localizedDescription)")
-        }
-    }
-    
-    private func loadJobAndShowDetail() async {
-        print("ApplicationCard: Loading job details for jobID: \(application.jobID)")
-        
-        await MainActor.run {
-            isLoadingJob = true
-            job = nil
-            showingJobDetail = false
-        }
-        
-        do {
-            if let fetchedJob = try await JobManager.shared.fetchJob(byID: application.jobID) {
-                print("ApplicationCard: Successfully loaded job: \(fetchedJob.jobTitle)")
-                await MainActor.run {
-                    job = fetchedJob
-                    isLoadingJob = false
-                    showingJobDetail = true
-                }
-            } else {
-                print("ApplicationCard: Job not found for ID: \(application.jobID)")
-                await MainActor.run {
-                    isLoadingJob = false
-                    errorMessage = "Job not found"
-                    showingErrorAlert = true
-                }
-            }
-        } catch {
-            print("ApplicationCard: Error loading job: \(error.localizedDescription)")
-            await MainActor.run {
-                isLoadingJob = false
-                errorMessage = "Failed to load job details: \(error.localizedDescription)"
-                showingErrorAlert = true
-            }
-        }
-    }
-    
-    private func withdrawApplication() {
-        showingWithdrawAlert = true
-    }
-    
-    private func performWithdraw() async {
-        await MainActor.run {
-            isWithdrawing = true
-        }
-        
-        do {
-            try await ApplicationManager.shared.withdrawApplication(applicationID: application.id)
-            await MainActor.run {
-                isWithdrawing = false
-            }
-            // Post notification to reload applications
-            NotificationCenter.default.post(name: NSNotification.Name("ApplicationWithdrawn"), object: nil)
-        } catch {
-            await MainActor.run {
-                isWithdrawing = false
-                errorMessage = "Failed to withdraw application: \(error.localizedDescription)"
-                showingErrorAlert = true
-            }
+            Text(viewModel.errorMessage)
         }
     }
 }
@@ -311,20 +205,4 @@ struct JobApplication: Identifiable {
     let pay: String
     let appliedDate: String
     let status: ApplicationStatus
-}
-
-enum ApplicationStatus: String, CaseIterable {
-    case pending = "Pending"
-    case accepted = "Accepted"
-    case completed = "Completed"
-    case rejected = "Rejected"
-    
-    var color: Color {
-        switch self {
-        case .pending: return .orange
-        case .accepted: return .green
-        case .completed: return .blue
-        case .rejected: return .red
-        }
-    }
 }

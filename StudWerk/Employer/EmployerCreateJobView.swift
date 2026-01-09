@@ -9,20 +9,7 @@ import SwiftUI
 
 struct EmployerCreateJobView: View {
     @EnvironmentObject var appState: AppState
-    @State private var jobTitle = ""
-    @State private var jobDescription = ""
-    @State private var payment = ""
-    @State private var selectedDate = Date()
-    @State private var startTime = Date()
-    @State private var endTime = Date()
-    @State private var selectedCategory = "General"
-    @State private var location = ""
-    @State private var showingSuccessAlert = false
-    @State private var showingErrorAlert = false
-    @State private var errorMessage = ""
-    @State private var isCreating = false
-    
-    let categories = ["General", "Technology", "Retail", "Food Service", "Marketing", "Administration", "Customer Service", "Other"]
+    @StateObject private var viewModel = EmployerCreateJobViewModel()
     
     var body: some View {
         NavigationView {
@@ -50,7 +37,7 @@ struct EmployerCreateJobView: View {
                                     .font(.subheadline)
                                     .fontWeight(.medium)
                                 
-                                TextField("e.g., Software Developer Intern", text: $jobTitle)
+                                TextField("e.g., Software Developer Intern", text: $viewModel.jobTitle)
                                     .textFieldStyle(RoundedBorderTextFieldStyle())
                             }
                             
@@ -60,8 +47,8 @@ struct EmployerCreateJobView: View {
                                     .font(.subheadline)
                                     .fontWeight(.medium)
                                 
-                                Picker("Category", selection: $selectedCategory) {
-                                    ForEach(categories, id: \.self) { category in
+                                Picker("Category", selection: $viewModel.selectedCategory) {
+                                    ForEach(viewModel.categories, id: \.self) { category in
                                         Text(category).tag(category)
                                     }
                                 }
@@ -78,7 +65,7 @@ struct EmployerCreateJobView: View {
                                     .font(.subheadline)
                                     .fontWeight(.medium)
                                 
-                                TextEditor(text: $jobDescription)
+                                TextEditor(text: $viewModel.jobDescription)
                                     .frame(minHeight: 100)
                                     .padding(8)
                                     .background(Color(.systemGray6))
@@ -103,7 +90,7 @@ struct EmployerCreateJobView: View {
                                         .font(.title2)
                                         .foregroundColor(.secondary)
                                     
-                                    TextField("50.00", text: $payment)
+                                    TextField("50.00", text: $viewModel.payment)
                                         .textFieldStyle(RoundedBorderTextFieldStyle())
                                         .keyboardType(.decimalPad)
                                 }
@@ -119,7 +106,7 @@ struct EmployerCreateJobView: View {
                                     .font(.subheadline)
                                     .fontWeight(.medium)
                                 
-                                DatePicker("Select Date", selection: $selectedDate, displayedComponents: .date)
+                                DatePicker("Select Date", selection: $viewModel.selectedDate, displayedComponents: .date)
                                     .datePickerStyle(CompactDatePickerStyle())
                                     .padding()
                                     .background(Color(.systemGray6))
@@ -133,7 +120,7 @@ struct EmployerCreateJobView: View {
                                         .font(.subheadline)
                                         .fontWeight(.medium)
                                     
-                                    DatePicker("Start", selection: $startTime, displayedComponents: .hourAndMinute)
+                                    DatePicker("Start", selection: $viewModel.startTime, displayedComponents: .hourAndMinute)
                                         .datePickerStyle(CompactDatePickerStyle())
                                         .padding()
                                         .background(Color(.systemGray6))
@@ -145,7 +132,7 @@ struct EmployerCreateJobView: View {
                                         .font(.subheadline)
                                         .fontWeight(.medium)
                                     
-                                    DatePicker("End", selection: $endTime, displayedComponents: .hourAndMinute)
+                                    DatePicker("End", selection: $viewModel.endTime, displayedComponents: .hourAndMinute)
                                         .datePickerStyle(CompactDatePickerStyle())
                                         .padding()
                                         .background(Color(.systemGray6))
@@ -165,7 +152,7 @@ struct EmployerCreateJobView: View {
                                     .font(.subheadline)
                                     .fontWeight(.medium)
                                 
-                                TextField("e.g., Musterstraße 123, 10115 Berlin", text: $location)
+                                TextField("e.g., Musterstraße 123, 10115 Berlin", text: $viewModel.location)
                                     .textFieldStyle(RoundedBorderTextFieldStyle())
                             }
                         }
@@ -173,97 +160,49 @@ struct EmployerCreateJobView: View {
                     
                     // Create Job Button
                     Button(action: {
-                        createJob()
+                        Task {
+                            await viewModel.createJob()
+                        }
                     }) {
                         HStack {
-                            if isCreating {
+                            if viewModel.isCreating {
                                 ProgressView()
                                     .progressViewStyle(CircularProgressViewStyle(tint: .white))
                             }
-                            Text(isCreating ? "Creating..." : "Create Job")
+                            Text(viewModel.isCreating ? "Creating..." : "Create Job")
                                 .font(.headline)
                                 .fontWeight(.semibold)
                         }
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .frame(height: 50)
-                        .background(isFormValid && !isCreating ? Color.blue : Color.gray)
+                        .background(viewModel.isFormValid && !viewModel.isCreating ? Color.blue : Color.gray)
                         .cornerRadius(12)
                     }
-                    .disabled(!isFormValid || isCreating)
+                    .disabled(!viewModel.isFormValid || viewModel.isCreating)
                     .padding(.horizontal, 20)
                     .padding(.bottom, 20)
                 }
                 .padding(.horizontal, 20)
             }
         }
-        .alert("Job Created!", isPresented: $showingSuccessAlert) {
+        .task {
+            if let employerID = appState.uid {
+                viewModel.employerID = employerID
+            }
+        }
+        .alert("Job Created!", isPresented: $viewModel.showingSuccessAlert) {
             Button("OK") {
-                resetForm()
+                viewModel.resetForm()
             }
         } message: {
             Text("Your job has been successfully posted and is now visible to students.")
         }
-        .alert("Error", isPresented: $showingErrorAlert) {
+        .alert("Error", isPresented: $viewModel.showingErrorAlert) {
             Button("OK") { }
         } message: {
-            Text(errorMessage)
+            Text(viewModel.errorMessage)
         }
-    }
-    
-    private var isFormValid: Bool {
-        !jobTitle.isEmpty &&
-        !jobDescription.isEmpty &&
-        !payment.isEmpty &&
-        !location.isEmpty
-    }
-    
-    private func createJob() {
-        guard let employerID = appState.uid else {
-            errorMessage = "You must be logged in to create a job."
-            showingErrorAlert = true
-            return
-        }
-        
-        isCreating = true
-        
-        Task {
-            do {
-                _ = try await JobManager.shared.createJob(
-                    employerID: employerID,
-                    jobTitle: jobTitle,
-                    jobDescription: jobDescription,
-                    payment: payment,
-                    date: selectedDate,
-                    startTime: startTime,
-                    endTime: endTime,
-                    category: selectedCategory,
-                    location: location
-                )
-                
-                await MainActor.run {
-                    isCreating = false
-                    showingSuccessAlert = true
-                }
-            } catch {
-                await MainActor.run {
-                    isCreating = false
-                    errorMessage = error.localizedDescription
-                    showingErrorAlert = true
-                }
-            }
-        }
-    }
-    
-    private func resetForm() {
-        jobTitle = ""
-        jobDescription = ""
-        payment = ""
-        selectedDate = Date()
-        startTime = Date()
-        endTime = Date()
-        selectedCategory = "General"
-        location = ""
     }
 }
 
@@ -271,3 +210,4 @@ struct EmployerCreateJobView: View {
     EmployerCreateJobView()
         .environmentObject(AppState())
 }
+

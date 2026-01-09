@@ -9,10 +9,12 @@ import SwiftUI
 
 struct StudentHomeView: View {
     @EnvironmentObject var appState: AppState
-    @State private var jobs: [Job] = []
-    @State private var applications: [Application] = []
-    @State private var isLoading = false
-    @State private var errorMessage: String? = nil
+    @StateObject private var viewModel: StudentHomeViewModel
+    
+    init() {
+        // Initialize with empty ID, will be set in onAppear
+        _viewModel = StateObject(wrappedValue: StudentHomeViewModel(studentID: ""))
+    }
     
     var body: some View {
         NavigationView {
@@ -36,23 +38,22 @@ struct StudentHomeView: View {
                     // Quick Stats
                     HStack(spacing: 16) {
                         StatCard(
-                            title: "Completed..",
-                            value: "\(completedJobsCount)",
+                            title: "Completed",
+                            value: "\(viewModel.completedJobsCount)",
                             color: .blue,
                             icon: "briefcase.fill"
-                            
                         )
                         
                         StatCard(
                             title: "Applications",
-                            value: "\(applicationsCount)",
+                            value: "\(viewModel.applicationsCount)",
                             color: .green,
                             icon: "doc.text.fill"
                         )
                         
                         StatCard(
                             title: "Earnings",
-                            value: "€\(totalEarnings)",
+                            value: "€\(viewModel.totalEarnings)",
                             color: .orange,
                             icon: "eurosign.circle.fill"
                         )
@@ -70,11 +71,11 @@ struct StudentHomeView: View {
                         }
                         .padding(.horizontal, 20)
                         
-                        if isLoading {
+                        if viewModel.isLoading {
                             ProgressView()
                                 .frame(maxWidth: .infinity)
                                 .padding()
-                        } else if featuredJobs.isEmpty {
+                        } else if viewModel.featuredJobs.isEmpty {
                             Text("No featured jobs available")
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
@@ -83,7 +84,7 @@ struct StudentHomeView: View {
                         } else {
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 16) {
-                                    ForEach(featuredJobs.prefix(3), id: \.id) { job in
+                                    ForEach(viewModel.featuredJobs.prefix(3), id: \.id) { job in
                                         FeaturedJobCard(job: job)
                                             .environmentObject(appState)
                                     }
@@ -104,11 +105,11 @@ struct StudentHomeView: View {
                         }
                         .padding(.horizontal, 20)
                         
-                        if isLoading {
+                        if viewModel.isLoading {
                             ProgressView()
                                 .frame(maxWidth: .infinity)
                                 .padding()
-                        } else if nearbyJobs.isEmpty {
+                        } else if viewModel.nearbyJobs.isEmpty {
                             Text("No nearby jobs available")
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
@@ -116,7 +117,7 @@ struct StudentHomeView: View {
                                 .padding()
                         } else {
                             LazyVStack(spacing: 12) {
-                                ForEach(nearbyJobs.prefix(5), id: \.id) { job in
+                                ForEach(viewModel.nearbyJobs.prefix(5), id: \.id) { job in
                                     JobCard(job: job)
                                         .environmentObject(appState)
                                 }
@@ -130,107 +131,24 @@ struct StudentHomeView: View {
             .navigationTitle("StudWerk")
         }
         .task {
-            await loadData()
+            // Set studentID if available
+            if let studentID = appState.uid {
+                viewModel.studentID = studentID
+                await viewModel.loadData()
+            }
         }
         .refreshable {
-            await loadData()
+            await viewModel.loadData()
         }
         .alert("Error", isPresented: Binding(
-            get: { errorMessage != nil },
-            set: { if !$0 { errorMessage = nil } }
+            get: { viewModel.errorMessage != nil },
+            set: { if !$0 { viewModel.errorMessage = nil } }
         )) {
             Button("OK") { }
         } message: {
-            if let errorMessage = errorMessage {
+            if let errorMessage = viewModel.errorMessage {
                 Text(errorMessage)
             }
-        }
-    }
-    
-    private var featuredJobs: [Job] {
-        // Featured jobs are the most recent ones that the student hasn't applied to
-        let appliedJobIDs = Set(applications.map { $0.jobID })
-        return Array(jobs
-            .filter { !appliedJobIDs.contains($0.id) }
-            .sorted { $0.createdAt > $1.createdAt }
-            .prefix(3))
-    }
-    
-    private var nearbyJobs: [Job] {
-        // Return jobs that the student hasn't applied to, sorted by creation date
-        let appliedJobIDs = Set(applications.map { $0.jobID })
-        return jobs
-            .filter { !appliedJobIDs.contains($0.id) }
-            .sorted { $0.createdAt > $1.createdAt }
-    }
-    
-    private var applicationsCount: Int {
-        applications.filter { $0.applicationStatus == .pending }.count
-    }
-    
-    private var completedJobsCount: Int {
-        applications.filter { $0.applicationStatus == .completed }.count
-    }
-    
-    private var totalEarnings: Int {
-        // Calculate earnings from completed jobs only
-        let completed = applications.filter { app in
-            app.applicationStatus == .completed
-        }
-        
-        return completed.reduce(0) { total, app in
-            // Extract payment amount from string like "€150" or "150"
-            let paymentString = app.jobPayment
-            let numbers = paymentString.components(separatedBy: CharacterSet.decimalDigits.inverted)
-                .compactMap { Int($0) }
-            let amount = numbers.first ?? 0
-            return total + amount
-        }
-    }
-    
-    private func loadData() async {
-        await loadJobs()
-        await loadApplications()
-    }
-    
-    private func loadJobs() async {
-        print("StudentHomeView: Loading jobs")
-        await MainActor.run {
-            isLoading = true
-            errorMessage = nil
-        }
-        
-        do {
-            let fetchedJobs = try await JobManager.shared.fetchJobs(status: "open")
-            print("StudentHomeView: Fetched \(fetchedJobs.count) jobs")
-            await MainActor.run {
-                self.jobs = fetchedJobs
-                isLoading = false
-                errorMessage = nil
-            }
-        } catch {
-            await MainActor.run {
-                isLoading = false
-                let errorDesc = error.localizedDescription
-                errorMessage = "Failed to load jobs: \(errorDesc)"
-                print("Error loading jobs: \(errorDesc)")
-                print("Full error: \(error)")
-            }
-        }
-    }
-    
-    private func loadApplications() async {
-        guard let studentID = appState.uid else {
-            return
-        }
-        
-        do {
-            let fetchedApplications = try await ApplicationManager.shared.fetchApplicationsByStudent(studentID: studentID)
-            await MainActor.run {
-                self.applications = fetchedApplications
-            }
-        } catch {
-            print("Error loading applications: \(error.localizedDescription)")
         }
     }
 }

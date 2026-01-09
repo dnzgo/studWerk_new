@@ -22,10 +22,12 @@ struct Application: Identifiable, Codable {
     let jobEndTime: Date
     let jobCategory: String
     
-    // Computed properties for display
+    // Computed property for type-safe status (similar to Job.jobStatus)
     var applicationStatus: ApplicationStatus {
         ApplicationStatus(rawValue: status) ?? .pending
     }
+    
+    // Computed properties for display
     
     var position: String { jobTitle }
     
